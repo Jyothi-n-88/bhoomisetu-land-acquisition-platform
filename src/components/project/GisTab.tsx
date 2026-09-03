@@ -4,6 +4,7 @@ import type { MapRef } from 'react-map-gl/mapbox';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { getProjectGeoJSON } from '../../services/parcelService';
 import { MapPin, AlertCircle, RefreshCw } from 'lucide-react';
+import ThreeDPropertyModal from './ThreeDPropertyModal';
 
 interface GisTabProps {
   projectId: string;
@@ -13,6 +14,7 @@ export default function GisTab({ projectId }: GisTabProps) {
   const [geoData, setGeoData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [show3DModal, setShow3DModal] = useState<any>(null);
   
   const [viewState, setViewState] = useState({
     longitude: 78.9629,
@@ -231,6 +233,18 @@ export default function GisTab({ projectId }: GisTabProps) {
                     {hoverInfo.properties.disputeStatus}
                   </div>
                 </div>
+                
+                {hoverInfo.properties.has3DBuilding && (
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShow3DModal(hoverInfo);
+                    }}
+                    className="w-full mt-3 flex items-center justify-center gap-1.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold rounded-lg transition-colors border border-indigo-200"
+                  >
+                    View 3D Property
+                  </button>
+                )}
               </div>
             </Popup>
           )}
@@ -255,6 +269,13 @@ export default function GisTab({ projectId }: GisTabProps) {
           </div>
         </div>
       </div>
+      
+      {show3DModal && (
+        <ThreeDPropertyModal
+          parcel={show3DModal}
+          onClose={() => setShow3DModal(null)}
+        />
+      )}
     </div>
   );
 }

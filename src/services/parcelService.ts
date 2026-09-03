@@ -15,6 +15,8 @@ export interface ParcelData {
   possessionStatus: 'PENDING' | 'TAKEN';
   disputeStatus: 'NONE' | 'ACTIVE' | 'RESOLVED';
   disputeDetails?: string;
+  has3DBuilding?: boolean;
+  affectedFloor?: string;
   createdAt?: string;
   updatedAt?: string;
 }

@@ -86,6 +86,13 @@ const parcelSchema = new mongoose.Schema(
     disputeDetails: {
       type: String,
     },
+    has3DBuilding: {
+      type: Boolean,
+      default: false,
+    },
+    affectedFloor: {
+      type: String,
+    },
   },
   {
     timestamps: true,

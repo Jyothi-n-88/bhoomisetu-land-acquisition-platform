@@ -199,7 +199,9 @@ export const getProjectGeoJSON = async (req: AuthRequest, res: Response) => {
           acquisitionStatus: parcel.acquisitionStatus,
           compensationStatus: parcel.compensationStatus,
           rnrStatus: parcel.rnrStatus,
-          disputeStatus: parcel.disputeStatus
+          disputeStatus: parcel.disputeStatus,
+          has3DBuilding: parcel.has3DBuilding,
+          affectedFloor: parcel.affectedFloor
         }
       };
     });

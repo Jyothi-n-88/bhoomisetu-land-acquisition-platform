@@ -41,7 +41,9 @@ export default function ProjectDetails() {
     latitude: 0,
     longitude: 0,
     acquisitionStatus: 'PROPOSED',
-    disputeStatus: 'NONE'
+    disputeStatus: 'NONE',
+    has3DBuilding: false,
+    affectedFloor: ''
   });
 
   const fetchProjectData = async () => {
@@ -100,7 +102,8 @@ export default function ProjectDetails() {
       setNewParcel({
         parcelId: '', surveyNumber: '', ownerName: '', ownerContact: '',
         area: 0, landType: 'Agricultural', latitude: 0, longitude: 0,
-        acquisitionStatus: 'PROPOSED', disputeStatus: 'NONE'
+        acquisitionStatus: 'PROPOSED', disputeStatus: 'NONE',
+        has3DBuilding: false, affectedFloor: ''
       });
       fetchProjectData();
     } catch (err: any) {
@@ -465,6 +468,32 @@ export default function ProjectDetails() {
                       onChange={(e) => setNewParcel({ ...newParcel, longitude: parseFloat(e.target.value) })}
                       className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 outline-none font-mono"
                       placeholder="e.g. 73.8567"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 md:col-span-2 p-3 bg-slate-50 border border-slate-200 rounded-lg mt-2">
+                  <div className="flex items-center gap-2 h-full pt-4">
+                    <input
+                      type="checkbox"
+                      id="has3DBuilding"
+                      checked={newParcel.has3DBuilding || false}
+                      onChange={(e) => setNewParcel({ ...newParcel, has3DBuilding: e.target.checked })}
+                      className="w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500 cursor-pointer"
+                    />
+                    <label htmlFor="has3DBuilding" className="text-sm font-medium text-slate-700 cursor-pointer">
+                      Has 3D Building?
+                    </label>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Affected Floor (Demo)</label>
+                    <input
+                      type="text"
+                      disabled={!newParcel.has3DBuilding}
+                      value={newParcel.affectedFloor || ''}
+                      onChange={(e) => setNewParcel({ ...newParcel, affectedFloor: e.target.value })}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 outline-none disabled:bg-slate-100 disabled:text-slate-400"
+                      placeholder="e.g. Floor 3 / Apt 301"
                     />
                   </div>
                 </div>
