@@ -9,7 +9,11 @@
     "start": "node dist/server.cjs"
   },
   "dependencies": {
+<<<<<<< HEAD
     "@google/genai": "^2.21.0",
+=======
+    "@google/genai": "^2.4.0",
+>>>>>>> origin/main
     "@react-oauth/google": "^0.13.5",
     "@react-three/drei": "^10.7.8",
     "@react-three/fiber": "^9.7.0",

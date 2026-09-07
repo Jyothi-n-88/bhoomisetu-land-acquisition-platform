@@ -10,7 +10,10 @@ import CompensationTab from '../components/project/CompensationTab';
 import RnrTab from '../components/project/RnrTab';
 import ParcelsTab from '../components/project/ParcelsTab';
 import GisTab from '../components/project/GisTab';
+<<<<<<< HEAD
 import AiInsightsTab from '../components/project/AiInsightsTab';
+=======
+>>>>>>> origin/main
 
 export default function ProjectDetails() {
   const { id } = useParams<{ id: string }>();
@@ -23,7 +26,11 @@ export default function ProjectDetails() {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [blockers, setBlockers] = useState<any>(null);
   
+<<<<<<< HEAD
   const [activeTab, setActiveTab] = useState<'Overview' | 'Parcels' | 'Compensation' | 'RnR' | 'GIS' | 'AI'>('Overview');
+=======
+  const [activeTab, setActiveTab] = useState<'Overview' | 'Parcels' | 'Compensation' | 'RnR' | 'GIS'>('Overview');
+>>>>>>> origin/main
 
 
   // Parcel States
@@ -160,7 +167,10 @@ export default function ProjectDetails() {
     { id: 'Compensation', label: 'Compensation', icon: IndianRupee },
     { id: 'RnR', label: 'R&R', icon: Home },
     { id: 'GIS', label: 'GIS Map', icon: MapIcon },
+<<<<<<< HEAD
     { id: 'AI', label: 'AI Advisor', icon: Activity },
+=======
+>>>>>>> origin/main
   ];
 
   return (
@@ -357,10 +367,13 @@ export default function ProjectDetails() {
           {activeTab === 'GIS' && (
             <GisTab projectId={project._id!} />
           )}
+<<<<<<< HEAD
 
           {activeTab === 'AI' && (
             <AiInsightsTab projectId={project._id!} />
           )}
+=======
+>>>>>>> origin/main
         </div>
 
       </div>

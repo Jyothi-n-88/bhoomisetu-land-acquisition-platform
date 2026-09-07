@@ -25,14 +25,24 @@ export const protect = async (req: AuthRequest, res: Response, next: NextFunctio
       // Get user from the token
       req.user = await User.findById(decoded.id).select('-password');
 
+<<<<<<< HEAD
       return next();
     } catch (error) {
       return res.status(401).json({ success: false, message: 'Not authorized, token failed' });
+=======
+      next();
+    } catch (error) {
+      res.status(401).json({ success: false, message: 'Not authorized, token failed' });
+>>>>>>> origin/main
     }
   }
 
   if (!token) {
+<<<<<<< HEAD
     return res.status(401).json({ success: false, message: 'Not authorized, no token' });
+=======
+    res.status(401).json({ success: false, message: 'Not authorized, no token' });
+>>>>>>> origin/main
   }
 };
 
@@ -45,6 +55,10 @@ export const authorize = (...roles: string[]) => {
         message: `User role ${req.user?.role} is not authorized to access this route`,
       });
     }
+<<<<<<< HEAD
     return next();
+=======
+    next();
+>>>>>>> origin/main
   };
 };
