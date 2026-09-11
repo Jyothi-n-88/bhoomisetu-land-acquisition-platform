@@ -8,11 +8,7 @@ export interface CompensationData {
   assessedAmount: number;
   approvedAmount: number;
   disbursedAmount: number;
-<<<<<<< HEAD
   paymentStatus: 'PENDING' | 'APPROVED' | 'PARTIALLY_PAID' | 'DISBURSED' | 'HELD_IN_ESCROW';
-=======
-  paymentStatus: 'PENDING' | 'PARTIALLY_PAID' | 'DISBURSED';
->>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
   disbursementDate?: string;
   bankReferenceNumber?: string;
   createdAt?: string;

@@ -4,7 +4,6 @@ export interface AiInsights {
   executiveSummary: string;
   criticalRiskFactors: string[];
   recommendedActions: string[];
-<<<<<<< HEAD
   metrics?: {
     totalParcels: number;
     acquiredParcels: number;
@@ -14,8 +13,6 @@ export interface AiInsights {
     unacquiredParcelIds: string[];
     disputedParcelIds: string[];
   };
-=======
->>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
 }
 
 export const analyzeProjectHealth = async (projectId: string, token: string): Promise<AiInsights> => {

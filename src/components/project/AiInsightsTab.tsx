@@ -93,7 +93,6 @@ export default function AiInsightsTab({ projectId }: AiInsightsTabProps) {
 
       {/* Insights Display */}
       {insights && (
-<<<<<<< HEAD
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
           {/* Dynamic Clearance Audit Cards */}
           {insights.metrics && (
@@ -206,69 +205,6 @@ export default function AiInsightsTab({ projectId }: AiInsightsTabProps) {
               </div>
             </div>
           </div>
-=======
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          
-          {/* Executive Summary (Full Width) */}
-          <div className="md:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-            <div className="bg-indigo-50 border-b border-indigo-100 px-6 py-4 flex items-center gap-2">
-              <FileText className="w-5 h-5 text-indigo-600" />
-              <h3 className="font-bold text-indigo-900">Executive Summary</h3>
-            </div>
-            <div className="p-6">
-              <p className="text-slate-700 leading-relaxed text-lg">
-                {insights.executiveSummary}
-              </p>
-            </div>
-          </div>
-
-          {/* Critical Risk Factors */}
-          <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-            <div className="bg-rose-50 border-b border-rose-100 px-6 py-4 flex items-center gap-2">
-              <AlertTriangle className="w-5 h-5 text-rose-600" />
-              <h3 className="font-bold text-rose-900">Critical Risk Factors</h3>
-            </div>
-            <div className="p-6">
-              {insights.criticalRiskFactors && insights.criticalRiskFactors.length > 0 ? (
-                <ul className="space-y-3">
-                  {insights.criticalRiskFactors.map((risk, idx) => (
-                    <li key={idx} className="flex items-start gap-3 text-slate-700 text-sm">
-                      <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0 mt-2"></span>
-                      <span>{risk}</span>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-sm text-slate-500 italic">No critical risks identified.</p>
-              )}
-            </div>
-          </div>
-
-          {/* Recommended Actions */}
-          <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-            <div className="bg-emerald-50 border-b border-emerald-100 px-6 py-4 flex items-center gap-2">
-              <CheckCircle className="w-5 h-5 text-emerald-600" />
-              <h3 className="font-bold text-emerald-900">Recommended Administrative Actions</h3>
-            </div>
-            <div className="p-6">
-              {insights.recommendedActions && insights.recommendedActions.length > 0 ? (
-                <ul className="space-y-3">
-                  {insights.recommendedActions.map((action, idx) => (
-                    <li key={idx} className="flex items-start gap-3 text-slate-700 text-sm">
-                      <span className="w-5 h-5 shrink-0 flex items-center justify-center rounded-full bg-emerald-100 text-emerald-600 text-xs font-bold mt-0.5">
-                        {idx + 1}
-                      </span>
-                      <span>{action}</span>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-sm text-slate-500 italic">No pending actions recommended.</p>
-              )}
-            </div>
-          </div>
-
->>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
         </div>
       )}
 

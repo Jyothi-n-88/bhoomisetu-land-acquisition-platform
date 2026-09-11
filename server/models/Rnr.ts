@@ -9,11 +9,7 @@ const rnrSchema = new mongoose.Schema(
       unique: true,
     },
     projectId: {
-<<<<<<< HEAD
       type: mongoose.Schema.Types.Mixed,
-=======
-      type: mongoose.Schema.Types.ObjectId,
->>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
       ref: 'Project',
       required: [true, 'Project ID reference is required'],
     },
@@ -46,7 +42,6 @@ const rnrSchema = new mongoose.Schema(
   }
 );
 
-<<<<<<< HEAD
 rnrSchema.pre('validate', async function () {
   if (this.projectId) {
     const val = typeof this.projectId === 'string' ? this.projectId.trim() : this.projectId.toString();
@@ -69,7 +64,4 @@ rnrSchema.pre('validate', async function () {
 });
 
 const Rnr = mongoose.models.Rnr || mongoose.model('Rnr', rnrSchema);
-=======
-const Rnr = mongoose.model('Rnr', rnrSchema);
->>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
 export default Rnr;

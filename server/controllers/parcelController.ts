@@ -1,13 +1,9 @@
 import { Request, Response } from 'express';
-<<<<<<< HEAD
 import mongoose from 'mongoose';
-=======
->>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
 import Parcel from '../models/Parcel';
 import Project from '../models/Project';
 import { AuthRequest } from '../middleware/authMiddleware';
 
-<<<<<<< HEAD
 /**
  * Resolves an incoming project ID, code string (e.g. "NHAI-KA-2024-EXP-087"),
  * or name to the parent Project's MongoDB _id (ObjectId).
@@ -103,8 +99,6 @@ export const syncProjectAcquiredLand = async (projectId: any) => {
   }
 };
 
-=======
->>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
 // @desc    Create a new land parcel
 // @route   POST /api/parcels
 // @access  Private (CENTRAL_AUTHORITY, STATE_AUTHORITY, DISTRICT_AUTHORITY, FIELD_OFFICER)
@@ -112,7 +106,6 @@ export const createParcel = async (req: AuthRequest, res: Response) => {
   try {
     const parcelData = { ...req.body };
 
-<<<<<<< HEAD
     // Automatically resolve and map incoming project code string to parent project's ObjectId _id
     if (parcelData.projectId) {
       const resolvedId = await resolveProjectId(parcelData.projectId);
@@ -121,8 +114,6 @@ export const createParcel = async (req: AuthRequest, res: Response) => {
       }
     }
 
-=======
->>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
     // 1. Parse GeoJSON Coordinates Polygon if provided as string
     let polygonInput =
       parcelData.geoJsonPolygon ??
@@ -220,17 +211,8 @@ export const createParcel = async (req: AuthRequest, res: Response) => {
 
     const parcel = await Parcel.create(parcelData);
 
-<<<<<<< HEAD
     // Sync project acquired land
     await syncProjectAcquiredLand(parcel.projectId);
-=======
-    // Optionally update project acquired land if ACQUIRED
-    if (parcel.acquisitionStatus === 'ACQUIRED' || parcel.acquisitionStatus === 'COMPLETED') {
-      await Project.findByIdAndUpdate(parcel.projectId, {
-        $inc: { acquiredLand: parcel.area },
-      });
-    }
->>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
 
     res.status(201).json({ success: true, parcel });
   } catch (error: any) {
@@ -249,14 +231,10 @@ export const getParcels = async (req: AuthRequest, res: Response) => {
     const { projectId, status, disputeStatus } = req.query;
 
     const filter: any = {};
-<<<<<<< HEAD
     if (projectId) {
       const queryIds = await resolveProjectQueryIds(projectId);
       filter.projectId = { $in: queryIds };
     }
-=======
-    if (projectId) filter.projectId = projectId;
->>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
     if (status) filter.acquisitionStatus = status;
     if (disputeStatus) filter.disputeStatus = disputeStatus;
 
@@ -294,7 +272,6 @@ export const updateParcel = async (req: AuthRequest, res: Response) => {
 
     const updateData = { ...req.body };
 
-<<<<<<< HEAD
     // Automatically resolve incoming project code string to parent project's ObjectId _id
     if (updateData.projectId) {
       const resolvedId = await resolveProjectId(updateData.projectId);
@@ -303,8 +280,6 @@ export const updateParcel = async (req: AuthRequest, res: Response) => {
       }
     }
 
-=======
->>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
     // Handle polygon textarea string if provided during update
     let polygonInput =
       updateData.geoJsonPolygon ??
@@ -368,15 +343,8 @@ export const updateParcel = async (req: AuthRequest, res: Response) => {
       areaDiff = (updatedParcel?.area || 0) - (originalParcel.area || 0);
     }
 
-<<<<<<< HEAD
     if (updatedParcel) {
       await syncProjectAcquiredLand(updatedParcel.projectId);
-=======
-    if (areaDiff !== 0 && updatedParcel) {
-      await Project.findByIdAndUpdate(updatedParcel.projectId, {
-        $inc: { acquiredLand: areaDiff },
-      });
->>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
     }
 
     res.status(200).json({ success: true, parcel: updatedParcel });
@@ -395,17 +363,8 @@ export const deleteParcel = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ success: false, message: 'Parcel not found' });
     }
 
-<<<<<<< HEAD
     // Sync project acquired land
     await syncProjectAcquiredLand(parcel.projectId);
-=======
-    // Rollback acquired land if necessary
-    if (parcel.acquisitionStatus === 'ACQUIRED' || parcel.acquisitionStatus === 'COMPLETED') {
-      await Project.findByIdAndUpdate(parcel.projectId, {
-        $inc: { acquiredLand: -(parcel.area || 0) },
-      });
-    }
->>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
 
     res.status(200).json({ success: true, message: 'Parcel deleted successfully' });
   } catch (error: any) {
@@ -453,15 +412,8 @@ export const updateParcelWorkflow = async (req: AuthRequest, res: Response) => {
       areaDiff = (updatedParcel?.area || 0) - (originalParcel.area || 0);
     }
 
-<<<<<<< HEAD
     if (updatedParcel) {
       await syncProjectAcquiredLand(updatedParcel.projectId);
-=======
-    if (areaDiff !== 0 && updatedParcel) {
-      await Project.findByIdAndUpdate(updatedParcel.projectId, {
-        $inc: { acquiredLand: areaDiff },
-      });
->>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
     }
 
     res.status(200).json({ success: true, parcel: updatedParcel });
@@ -476,12 +428,8 @@ export const updateParcelWorkflow = async (req: AuthRequest, res: Response) => {
 export const getProjectGeoJSON = async (req: AuthRequest, res: Response) => {
   try {
     const { projectId } = req.params;
-<<<<<<< HEAD
     const queryIds = await resolveProjectQueryIds(projectId);
     const parcels = await Parcel.find({ projectId: { $in: queryIds } });
-=======
-    const parcels = await Parcel.find({ projectId });
->>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
 
     const features = parcels.map((parcel) => {
       let geometry = parcel.geometry;

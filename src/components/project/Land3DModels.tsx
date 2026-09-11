@@ -8,11 +8,8 @@ export interface LandModelProps {
   acquisitionStatus?: string;
   possessionStatus?: string;
   disputeStatus?: string;
-<<<<<<< HEAD
   disbursementStatus?: string;
   compensationStatus?: string;
-=======
->>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
   affectedFloor?: string;
   area?: number;
   interactive?: boolean;
@@ -20,17 +17,12 @@ export interface LandModelProps {
 }
 
 // Status color resolver according to specifications:
-<<<<<<< HEAD
 // - Possession Handover or Acquired / Disbursed: Solid Green (#10b981)
-=======
-// - Possession Handover or Acquired: Solid Green (#10b981)
->>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
 // - Pending Compensation / Award Declared: Yellow (#f59e0b)
 // - Active Dispute / Litigation: Red (#ef4444)
 export const getStatusColor = (
   disputeStatus?: string,
   acquisitionStatus?: string,
-<<<<<<< HEAD
   possessionStatus?: string,
   disbursementStatus?: string,
   compensationStatus?: string
@@ -68,25 +60,6 @@ export const getStatusColor = (
     acq === 'completed' ||
     acq.includes('possession') ||
     acq.includes('handed')
-=======
-  possessionStatus?: string
-): string => {
-  const disp = (disputeStatus || '').toUpperCase();
-  if (disp === 'ACTIVE' || disp === 'LITIGATION') {
-    return '#ef4444';
-  }
-
-  const poss = (possessionStatus || '').toUpperCase();
-  const acq = (acquisitionStatus || '').toUpperCase();
-
-  if (
-    poss === 'TAKEN' ||
-    poss.includes('HANDOVER') ||
-    acq === 'ACQUIRED' ||
-    acq === 'COMPLETED' ||
-    acq.includes('POSSESSION') ||
-    acq.includes('HANDED')
->>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
   ) {
     return '#10b981';
   }
@@ -424,17 +397,13 @@ export const Parcel3DGeometry: React.FC<LandModelProps> = ({
   acquisitionStatus,
   possessionStatus,
   disputeStatus,
-<<<<<<< HEAD
   disbursementStatus,
   compensationStatus,
-=======
->>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
   affectedFloor,
 }) => {
   const classification = (landClassification || landType || 'Agricultural').toLowerCase();
 
   // Status Boundary Ring (Solid Green, Yellow, or Red)
-<<<<<<< HEAD
   const statusColor = getStatusColor(
     disputeStatus,
     acquisitionStatus,
@@ -442,9 +411,6 @@ export const Parcel3DGeometry: React.FC<LandModelProps> = ({
     disbursementStatus,
     compensationStatus
   );
-=======
-  const statusColor = getStatusColor(disputeStatus, acquisitionStatus, possessionStatus);
->>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
 
   return (
     <group>

@@ -1,17 +1,10 @@
-<<<<<<< HEAD
 import React, { useEffect, useState, useCallback } from 'react';
-=======
-import React, { useEffect, useState } from 'react';
->>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
 import { useAuth } from '../context/AuthContext';
 import Layout from '../components/Layout';
 import { Briefcase, Map, IndianRupee, AlertCircle, Plus, MapPin, Users, ShieldCheck, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { getDashboardMetrics, getProjects } from '../services/projectService';
-<<<<<<< HEAD
 import { useDataSync } from '../utils/eventSync';
-=======
->>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
 
 const carouselSlides = [
   {
@@ -57,7 +50,6 @@ export default function Dashboard() {
     return () => clearInterval(timer);
   }, []);
 
-<<<<<<< HEAD
   const fetchDashboardData = useCallback(async () => {
     try {
       const [metricsData, projectsData] = await Promise.all([
@@ -84,39 +76,6 @@ export default function Dashboard() {
 
   // Real-time synchronization when parcels or compensations change anywhere in the app
   useDataSync(fetchDashboardData);
-=======
-  useEffect(() => {
-    let isMounted = true;
-    const fetchDashboardData = async () => {
-      try {
-        const [metricsData, projectsData] = await Promise.all([
-          getDashboardMetrics(),
-          getProjects().catch(() => ({ success: false, projects: [] }))
-        ]);
-        
-        if (isMounted) {
-          if (metricsData.success) {
-            setMetrics(metricsData.metrics);
-          }
-          if (projectsData.success && projectsData.projects.length > 0) {
-            setLatestProjectId(projectsData.projects[0]._id);
-          }
-        }
-      } catch (error) {
-        console.error('Failed to load dashboard data:', error);
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
-      }
-    };
-
-    fetchDashboardData();
-    return () => {
-      isMounted = false;
-    };
-  }, []);
->>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
 
   const handleCreateProject = () => {
     navigate('/projects', { state: { action: 'create' } });
@@ -234,11 +193,7 @@ export default function Dashboard() {
             <div>
               <p className="text-sm font-medium text-slate-500 mb-1">Total Area Acquired</p>
               <h3 className="text-3xl font-bold text-slate-900 flex items-baseline gap-2">
-<<<<<<< HEAD
                 {loading ? <Loader2 className="w-8 h-8 animate-spin text-emerald-300" /> : (Number(metrics.totalAcquiredArea) || 0).toFixed(2)} <span className="text-lg text-slate-400 font-normal">Hectares</span>
-=======
-                {loading ? <Loader2 className="w-8 h-8 animate-spin text-emerald-300" /> : metrics.totalAcquiredArea.toFixed(2)} <span className="text-lg text-slate-400 font-normal">Hectares</span>
->>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
               </h3>
             </div>
           </div>
@@ -252,11 +207,7 @@ export default function Dashboard() {
             <div>
               <p className="text-sm font-medium text-slate-500 mb-1">Pending Compensation</p>
               <h3 className="text-3xl font-bold text-slate-900 flex items-baseline gap-2">
-<<<<<<< HEAD
                 ₹{loading ? <Loader2 className="w-8 h-8 animate-spin text-amber-300" /> : ((Number(metrics.pendingCompensation) || 0) / 10000000).toFixed(2)} <span className="text-lg text-slate-400 font-normal">Cr</span>
-=======
-                ₹{loading ? <Loader2 className="w-8 h-8 animate-spin text-amber-300" /> : (metrics.pendingCompensation / 10000000).toFixed(2)} <span className="text-lg text-slate-400 font-normal">Cr</span>
->>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
               </h3>
             </div>
           </div>
@@ -270,11 +221,7 @@ export default function Dashboard() {
             <div>
               <p className="text-sm font-medium text-slate-500 mb-1">Active Legal Disputes</p>
               <h3 className="text-3xl font-bold text-slate-900">
-<<<<<<< HEAD
                 {loading ? <Loader2 className="w-8 h-8 animate-spin text-rose-300" /> : (Number(metrics.activeDisputes) || 0)}
-=======
-                {loading ? <Loader2 className="w-8 h-8 animate-spin text-rose-300" /> : metrics.activeDisputes}
->>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
               </h3>
             </div>
           </div>

@@ -214,13 +214,9 @@ export default function Corridor3DView({
             const statusColor = getStatusColor(
               parcel.properties?.disputeStatus,
               parcel.properties?.acquisitionStatus,
-<<<<<<< HEAD
               parcel.properties?.possessionStatus,
               parcel.properties?.disbursementStatus,
               parcel.properties?.compensationStatus
-=======
-              parcel.properties?.possessionStatus
->>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
             );
 
             return (
@@ -288,11 +284,8 @@ export default function Corridor3DView({
                   acquisitionStatus={parcel.properties?.acquisitionStatus}
                   possessionStatus={parcel.properties?.possessionStatus}
                   disputeStatus={parcel.properties?.disputeStatus}
-<<<<<<< HEAD
                   disbursementStatus={parcel.properties?.disbursementStatus}
                   compensationStatus={parcel.properties?.compensationStatus}
-=======
->>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
                   affectedFloor={parcel.properties?.affectedFloor}
                   area={parcel.properties?.area}
                 />
@@ -326,13 +319,9 @@ export default function Corridor3DView({
                     backgroundColor: getStatusColor(
                       activeFeature.properties?.disputeStatus,
                       activeFeature.properties?.acquisitionStatus,
-<<<<<<< HEAD
                       activeFeature.properties?.possessionStatus,
                       activeFeature.properties?.disbursementStatus,
                       activeFeature.properties?.compensationStatus
-=======
-                      activeFeature.properties?.possessionStatus
->>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
                     ),
                   }}
                 ></span>

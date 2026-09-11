@@ -41,13 +41,9 @@ export default function ThreeDPropertyModal({ parcel, onClose }: ThreeDPropertyM
   const statusColor = getStatusColor(
     parcelData.disputeStatus,
     parcelData.acquisitionStatus,
-<<<<<<< HEAD
     parcelData.possessionStatus,
     parcelData.disbursementStatus,
     parcelData.compensationStatus
-=======
-    parcelData.possessionStatus
->>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
   );
 
   const getStatusBadge = () => {
@@ -63,7 +59,6 @@ export default function ThreeDPropertyModal({ parcel, onClose }: ThreeDPropertyM
 
     const poss = (parcelData.possessionStatus || '').toUpperCase();
     const acq = (parcelData.acquisitionStatus || '').toUpperCase();
-<<<<<<< HEAD
     const disb = (parcelData.disbursementStatus || '').toUpperCase();
     const comp = (parcelData.compensationStatus || '').toUpperCase();
 
@@ -73,9 +68,6 @@ export default function ThreeDPropertyModal({ parcel, onClose }: ThreeDPropertyM
       acq === 'COMPENSATION_PAID' ||
       acq === 'COMPENSATION PAID' ||
       comp === 'DISBURSED' ||
-=======
-    if (
->>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
       poss === 'TAKEN' ||
       poss.includes('HANDOVER') ||
       acq === 'ACQUIRED' ||
@@ -83,11 +75,7 @@ export default function ThreeDPropertyModal({ parcel, onClose }: ThreeDPropertyM
       acq.includes('POSSESSION')
     ) {
       return {
-<<<<<<< HEAD
         label: 'Possession Handover / Disbursed / Acquired',
-=======
-        label: 'Possession Handover / Acquired',
->>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
         bg: 'bg-emerald-50 text-emerald-700 border-emerald-200',
         icon: CheckCircle2,
         color: '#10b981',

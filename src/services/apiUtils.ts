@@ -27,6 +27,15 @@ export const handleApiResponse = async <T = any>(
   const isJson = contentType.toLowerCase().includes('application/json');
 
   if (!response.ok) {
+    // Intercept 401 Unauthorized globally to clear session and redirect
+    if (response.status === 401) {
+      localStorage.removeItem('bhoomisetu_token');
+      localStorage.removeItem('bhoomisetu_user');
+      window.location.href = '/login';
+      // Return a never-resolving promise to halt execution and avoid console errors during redirect
+      return new Promise(() => {}) as Promise<T>;
+    }
+
     if (isJson) {
       try {
         const errorData = await response.json();
@@ -47,10 +56,6 @@ export const handleApiResponse = async <T = any>(
     if (response.status === 403) {
       throw new Error(
         'Server routing or authentication error (403 Forbidden): Access denied. Please ensure you are logged in with Central or State authority privileges.'
-      );
-    } else if (response.status === 401) {
-      throw new Error(
-        'Authentication required (401 Unauthorized): Please sign in to an authorized official account.'
       );
     } else if (response.status === 404) {
       throw new Error(
