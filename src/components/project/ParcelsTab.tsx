@@ -1,8 +1,12 @@
 import React, { useState } from 'react';
 import { ParcelData, updateParcelWorkflow } from '../../services/parcelService';
+<<<<<<< HEAD
 import { MapPin, AlertCircle, Plus, ChevronRight, Edit3, CheckCircle2 } from 'lucide-react';
 import EditParcelModal from './EditParcelModal';
 import { triggerDataSync } from '../../utils/eventSync';
+=======
+import { MapPin, AlertCircle, Plus, ChevronRight } from 'lucide-react';
+>>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
 
 interface ParcelsTabProps {
   parcels: ParcelData[];
@@ -13,9 +17,14 @@ interface ParcelsTabProps {
 }
 
 export default function ParcelsTab({ parcels, loadingParcels, onAddClick, canEdit, onRefresh }: ParcelsTabProps) {
+<<<<<<< HEAD
   const [editingParcel, setEditingParcel] = useState<ParcelData | null>(null);
   
   const handleStatusAdvance = async (id: string, currentStatus: string, projectId?: string) => {
+=======
+  
+  const handleStatusAdvance = async (id: string, currentStatus: string) => {
+>>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
     const workflowOrder = [
       'PROPOSED', 'SURVEYED', 'UNDER_NOTIFICATION', 'AWARD_PENDING', 
       'COMPENSATION_PENDING', 'COMPENSATION_PAID', 'R_AND_R_PENDING', 
@@ -27,7 +36,10 @@ export default function ParcelsTab({ parcels, loadingParcels, onAddClick, canEdi
       if (window.confirm(`Advance status to ${nextStatus}?`)) {
         try {
           await updateParcelWorkflow(id, nextStatus);
+<<<<<<< HEAD
           triggerDataSync({ projectId, type: 'workflow_updated' });
+=======
+>>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
           onRefresh();
         } catch (e) {
           alert('Failed to advance workflow');
@@ -41,8 +53,11 @@ export default function ParcelsTab({ parcels, loadingParcels, onAddClick, canEdi
       case 'ACQUIRED':
       case 'COMPLETED':
         return <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">{status}</span>;
+<<<<<<< HEAD
       case 'COMPENSATION_PAID':
         return <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">COMPENSATION PAID</span>;
+=======
+>>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
       case 'COMPENSATION_PENDING':
       case 'AWARD_PENDING':
         return <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-700">{status}</span>;
@@ -61,7 +76,11 @@ export default function ParcelsTab({ parcels, loadingParcels, onAddClick, canEdi
           <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
             Land Parcels
           </h2>
+<<<<<<< HEAD
           <p className="text-xs text-slate-500 mt-1">Manage survey numbers, ownership, compensation, and possession status.</p>
+=======
+          <p className="text-xs text-slate-500 mt-1">Manage survey numbers, ownership, and acquisition status.</p>
+>>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
         </div>
         
         <button
@@ -93,7 +112,11 @@ export default function ParcelsTab({ parcels, loadingParcels, onAddClick, canEdi
                 <th className="px-6 py-4">Compensation (₹)</th>
                 <th className="px-6 py-4">Status & Possession</th>
                 <th className="px-6 py-4">Dispute Status</th>
+<<<<<<< HEAD
                 {canEdit && <th className="px-6 py-4 text-right">Actions</th>}
+=======
+                {canEdit && <th className="px-6 py-4 text-right">Action</th>}
+>>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
               </tr>
             </thead>
             <tbody className="text-sm divide-y divide-slate-100">
@@ -114,6 +137,7 @@ export default function ParcelsTab({ parcels, loadingParcels, onAddClick, canEdi
                     <div className="font-mono font-semibold text-slate-900">
                       ₹{(parcel.compensationAmount || 0).toLocaleString('en-IN')}
                     </div>
+<<<<<<< HEAD
                     <div className="mt-1">
                       {parcel.disbursementStatus === 'Disbursed' ? (
                         <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
@@ -124,10 +148,15 @@ export default function ParcelsTab({ parcels, loadingParcels, onAddClick, canEdi
                           {parcel.disbursementStatus || 'Pending'}
                         </span>
                       )}
+=======
+                    <div className="text-xs text-slate-500">
+                      {parcel.disbursementStatus || 'Pending'}
+>>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
                     </div>
                   </td>
                   <td className="px-6 py-4">
                     {getParcelStatusBadge(parcel.acquisitionStatus || 'PROPOSED')}
+<<<<<<< HEAD
                     <div className="mt-1">
                       {parcel.possessionStatus === 'Possession Handover' ? (
                         <span className="text-xs font-semibold text-emerald-700 flex items-center gap-1">
@@ -142,6 +171,10 @@ export default function ParcelsTab({ parcels, loadingParcels, onAddClick, canEdi
                           {parcel.possessionStatus || 'Notice Issued'}
                         </span>
                       )}
+=======
+                    <div className="text-xs text-slate-500 mt-1">
+                      {parcel.possessionStatus || 'Notice Issued'}
+>>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
                     </div>
                   </td>
                   <td className="px-6 py-4">
@@ -155,6 +188,7 @@ export default function ParcelsTab({ parcels, loadingParcels, onAddClick, canEdi
                   </td>
                   {canEdit && (
                     <td className="px-6 py-4 text-right">
+<<<<<<< HEAD
                       <div className="flex items-center justify-end gap-1.5">
                         <button 
                           onClick={() => setEditingParcel(parcel)}
@@ -173,6 +207,16 @@ export default function ParcelsTab({ parcels, loadingParcels, onAddClick, canEdi
                           </button>
                         )}
                       </div>
+=======
+                      {parcel.acquisitionStatus !== 'COMPLETED' && (
+                        <button 
+                          onClick={() => handleStatusAdvance(parcel._id!, parcel.acquisitionStatus)}
+                          className="text-xs font-medium text-slate-600 hover:text-slate-900 border border-slate-200 px-2 py-1 rounded bg-white inline-flex items-center gap-1"
+                        >
+                          Advance <ChevronRight className="w-3 h-3" />
+                        </button>
+                      )}
+>>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
                     </td>
                   )}
                 </tr>
@@ -181,6 +225,7 @@ export default function ParcelsTab({ parcels, loadingParcels, onAddClick, canEdi
           </table>
         )}
       </div>
+<<<<<<< HEAD
 
       {/* Edit Parcel Modal */}
       {editingParcel && (
@@ -193,6 +238,8 @@ export default function ParcelsTab({ parcels, loadingParcels, onAddClick, canEdi
           }}
         />
       )}
+=======
+>>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
     </div>
   );
 }

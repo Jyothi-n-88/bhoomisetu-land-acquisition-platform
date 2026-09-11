@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 import React, { useEffect, useState, useCallback } from 'react';
+=======
+import React, { useEffect, useState } from 'react';
+>>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
 import Layout from '../components/Layout';
 import { getProjects, ProjectData, createProject } from '../services/projectService';
 import { useAuth } from '../context/AuthContext';
@@ -8,7 +12,10 @@ import {
   Scale, IndianRupee, Layers, Landmark, Building2, 
   FileText, CheckCircle2, X, AlertCircle
 } from 'lucide-react';
+<<<<<<< HEAD
 import { useDataSync, triggerDataSync } from '../utils/eventSync';
+=======
+>>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
 
 const STATUTORY_FRAMEWORKS = [
   'RFCTLARR Act, 2013',
@@ -90,6 +97,7 @@ export default function Projects() {
     expectedCompletion: '',
   });
 
+<<<<<<< HEAD
   const fetchProjects = useCallback(async (isInitial = false) => {
     try {
       if (isInitial) setLoading(true);
@@ -109,6 +117,23 @@ export default function Projects() {
   }, [fetchProjects]);
 
   useDataSync(fetchProjects);
+=======
+  const fetchProjects = async () => {
+    try {
+      setLoading(true);
+      const data = await getProjects();
+      setProjects(data.projects);
+    } catch (err: any) {
+      setError(err.message || 'Failed to load projects');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchProjects();
+  }, []);
+>>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
 
   const canCreate = user?.role === 'CENTRAL_AUTHORITY' || user?.role === 'STATE_AUTHORITY';
 
@@ -136,8 +161,11 @@ export default function Projects() {
 
       await createProject(payload);
       setShowCreateModal(false);
+<<<<<<< HEAD
       triggerDataSync({ type: 'project_created' });
       fetchProjects(false);
+=======
+>>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
       setNewProject({
         projectId: '',
         projectCode: '',

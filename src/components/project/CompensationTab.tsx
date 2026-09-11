@@ -2,7 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { getProjectCompensation, disburseCompensation, createOrUpdateCompensation } from '../../services/compensationService';
 import { ParcelData } from '../../services/parcelService';
 import { IndianRupee, FileCheck, Landmark, CheckCircle, Edit3 } from 'lucide-react';
+<<<<<<< HEAD
 import { triggerDataSync } from '../../utils/eventSync';
+=======
+>>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
 
 interface CompensationTabProps {
   projectId: string;
@@ -65,7 +68,10 @@ export default function CompensationTab({ projectId, parcels, onRefresh, canEdit
     try {
       await createOrUpdateCompensation({ parcelId: selectedParcelId, projectId, ...assessForm });
       setShowModal(false);
+<<<<<<< HEAD
       triggerDataSync({ projectId, parcelId: selectedParcelId, type: 'compensation_assessed' });
+=======
+>>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
       fetchCompensation();
       onRefresh();
     } catch (err) {
@@ -83,7 +89,10 @@ export default function CompensationTab({ projectId, parcels, onRefresh, canEdit
       if (comp) {
         await disburseCompensation(comp._id, disburseForm);
         setShowModal(false);
+<<<<<<< HEAD
         triggerDataSync({ projectId, parcelId: selectedParcelId, type: 'compensation_disbursed' });
+=======
+>>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
         fetchCompensation();
         onRefresh();
       }
@@ -157,10 +166,13 @@ export default function CompensationTab({ projectId, parcels, onRefresh, canEdit
                           <span className="px-2 py-1 bg-emerald-100 text-emerald-700 text-xs font-medium rounded-full">Disbursed</span>
                         ) : comp?.paymentStatus === 'PARTIALLY_PAID' ? (
                           <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">Partial</span>
+<<<<<<< HEAD
                         ) : comp?.paymentStatus === 'HELD_IN_ESCROW' ? (
                           <span className="px-2 py-1 bg-purple-100 text-purple-700 text-xs font-medium rounded-full">In Escrow</span>
                         ) : comp?.paymentStatus === 'APPROVED' ? (
                           <span className="px-2 py-1 bg-cyan-100 text-cyan-700 text-xs font-medium rounded-full">Approved</span>
+=======
+>>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
                         ) : (
                           <span className="px-2 py-1 bg-amber-100 text-amber-700 text-xs font-medium rounded-full">Pending</span>
                         )}

@@ -84,5 +84,9 @@ const projectSchema = new mongoose.Schema(
   }
 );
 
+<<<<<<< HEAD
 const Project = mongoose.models.Project || mongoose.model('Project', projectSchema);
+=======
+const Project = mongoose.model('Project', projectSchema);
+>>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
 export default Project;

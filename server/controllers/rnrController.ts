@@ -1,8 +1,13 @@
 import { Request, Response } from 'express';
+<<<<<<< HEAD
 import mongoose from 'mongoose';
 import Rnr from '../models/Rnr';
 import Parcel from '../models/Parcel';
 import Project from '../models/Project';
+=======
+import Rnr from '../models/Rnr';
+import Parcel from '../models/Parcel';
+>>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
 import { AuthRequest } from '../middleware/authMiddleware';
 
 // @desc    Create or update an R&R record for a parcel
@@ -12,6 +17,7 @@ export const createOrUpdateRnr = async (req: AuthRequest, res: Response) => {
   try {
     const { parcelId, projectId, affectedFamiliesCount, displacedFamiliesCount, rnrRequired, rnrStatus, resettlementSite, assistanceDetails } = req.body;
 
+<<<<<<< HEAD
     let resolvedProjectId = projectId;
     if (projectId) {
       const proj = await Project.findOne({
@@ -22,13 +28,18 @@ export const createOrUpdateRnr = async (req: AuthRequest, res: Response) => {
       }
     }
 
+=======
+>>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
     let rnr = await Rnr.findOne({ parcelId });
 
     if (rnr) {
       rnr.affectedFamiliesCount = affectedFamiliesCount !== undefined ? affectedFamiliesCount : rnr.affectedFamiliesCount;
       rnr.displacedFamiliesCount = displacedFamiliesCount !== undefined ? displacedFamiliesCount : rnr.displacedFamiliesCount;
       rnr.rnrRequired = rnrRequired !== undefined ? rnrRequired : rnr.rnrRequired;
+<<<<<<< HEAD
       if (resolvedProjectId) rnr.projectId = resolvedProjectId;
+=======
+>>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
       if (rnrStatus) rnr.rnrStatus = rnrStatus;
       if (resettlementSite) rnr.resettlementSite = resettlementSite;
       if (assistanceDetails) rnr.assistanceDetails = assistanceDetails;
@@ -36,7 +47,11 @@ export const createOrUpdateRnr = async (req: AuthRequest, res: Response) => {
     } else {
       rnr = await Rnr.create({
         parcelId,
+<<<<<<< HEAD
         projectId: resolvedProjectId,
+=======
+        projectId,
+>>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
         affectedFamiliesCount: affectedFamiliesCount || 0,
         displacedFamiliesCount: displacedFamiliesCount || 0,
         rnrRequired: rnrRequired || false,
@@ -72,6 +87,7 @@ export const getProjectRnr = async (req: AuthRequest, res: Response) => {
   try {
     const { projectId } = req.params;
 
+<<<<<<< HEAD
     let queryIds: any[] = [projectId];
     const project = await Project.findOne({
       $or: [{ projectId }, { projectCode: projectId }, { name: projectId }],
@@ -86,6 +102,9 @@ export const getProjectRnr = async (req: AuthRequest, res: Response) => {
     }
 
     const rnrs = await Rnr.find({ projectId: { $in: queryIds } }).populate('parcelId', 'parcelId surveyNumber ownerName');
+=======
+    const rnrs = await Rnr.find({ projectId }).populate('parcelId', 'parcelId surveyNumber ownerName');
+>>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
 
     const summary = rnrs.reduce(
       (acc, curr) => {

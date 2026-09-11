@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+=======
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+>>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
 import Map, { Source, Layer, Popup, ViewStateChangeEvent } from 'react-map-gl/mapbox';
 import type { MapRef } from 'react-map-gl/mapbox';
 import 'mapbox-gl/dist/mapbox-gl.css';
@@ -23,7 +27,10 @@ import {
 import ThreeDPropertyModal from './project/ThreeDPropertyModal';
 import Corridor3DView from './project/Corridor3DView';
 import { getStatusColor } from './project/Land3DModels';
+<<<<<<< HEAD
 import { useDataSync } from '../utils/eventSync';
+=======
+>>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
 
 interface GISMapProps {
   projectId: string;
@@ -32,7 +39,11 @@ interface GISMapProps {
 }
 
 // 2D Mapbox Map Status Color Expression (matches prompt specifications):
+<<<<<<< HEAD
 // - Possession Handover, Disbursed / Compensation Paid, or Acquired: Solid Green (#10b981) with 60% opacity to show continuous completed corridor
+=======
+// - Possession Handover or Acquired: Solid Green (#10b981) with 60% opacity to show continuous completed corridor
+>>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
 // - Pending Compensation / Award Declared: Yellow (#f59e0b)
 // - Active Dispute / Litigation: Red (#ef4444)
 export const STATUS_FILL_COLOR_EXPRESSION: any = [
@@ -47,6 +58,7 @@ export const STATUS_FILL_COLOR_EXPRESSION: any = [
   ],
   '#ef4444',
 
+<<<<<<< HEAD
   // Possession Handover, Disbursed, or Compensation Paid -> Solid Green
   [
     'any',
@@ -64,6 +76,14 @@ export const STATUS_FILL_COLOR_EXPRESSION: any = [
     ['==', ['get', 'possessionStatus'], 'Possession Handover'],
     ['==', ['get', 'possessionStatus'], 'POSSESSION_HANDOVER'],
     ['==', ['get', 'possessionStatus'], 'possession handover'],
+=======
+  // Possession Handover or Acquired -> Solid Green
+  [
+    'any',
+    ['==', ['get', 'possessionStatus'], 'TAKEN'],
+    ['==', ['get', 'possessionStatus'], 'Possession Handover'],
+    ['==', ['get', 'possessionStatus'], 'POSSESSION_HANDOVER'],
+>>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
     ['==', ['get', 'possessionStatus'], 'HANDED_OVER'],
     ['==', ['get', 'acquisitionStatus'], 'ACQUIRED'],
     ['==', ['get', 'acquisitionStatus'], 'Acquired'],
@@ -96,15 +116,26 @@ export default function GISMap({ projectId, className = '', initialMode = '2D' }
   const [hoverInfo, setHoverInfo] = useState<any>(null);
   const mapRef = useRef<MapRef>(null);
 
+<<<<<<< HEAD
   const fetchGeoJSON = useCallback(async (isInitial = false) => {
     try {
       if (isInitial) setLoading(true);
+=======
+  const fetchGeoJSON = async () => {
+    try {
+      setLoading(true);
+>>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
       setError('');
       const data = await getProjectGeoJSON(projectId);
       setGeoData(data);
       
+<<<<<<< HEAD
       // Calculate bounding box or center from features on initial load
       if (isInitial && data.features && data.features.length > 0) {
+=======
+      // Calculate bounding box or center from features
+      if (data.features && data.features.length > 0) {
+>>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
         let totalLat = 0;
         let totalLng = 0;
         let count = 0;
@@ -132,6 +163,7 @@ export default function GISMap({ projectId, className = '', initialMode = '2D' }
         }
       }
     } catch (err: any) {
+<<<<<<< HEAD
       if (isInitial) setError('Failed to load project GIS corridor data');
     } finally {
       if (isInitial) setLoading(false);
@@ -148,6 +180,17 @@ export default function GISMap({ projectId, className = '', initialMode = '2D' }
       fetchGeoJSON(false);
     }
   }, [projectId, fetchGeoJSON]));
+=======
+      setError('Failed to load project GIS corridor data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchGeoJSON();
+  }, [projectId]);
+>>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
 
   const mapToken = import.meta.env.VITE_MAPBOX_TOKEN;
 
@@ -162,9 +205,13 @@ export default function GISMap({ projectId, className = '', initialMode = '2D' }
       const color = getStatusColor(
         f.properties?.disputeStatus,
         f.properties?.acquisitionStatus,
+<<<<<<< HEAD
         f.properties?.possessionStatus,
         f.properties?.disbursementStatus,
         f.properties?.compensationStatus
+=======
+        f.properties?.possessionStatus
+>>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
       );
       if (color === '#10b981') acquired++;
       else if (color === '#ef4444') dispute++;
@@ -377,9 +424,13 @@ export default function GISMap({ projectId, className = '', initialMode = '2D' }
                             backgroundColor: getStatusColor(
                               hoverInfo.properties.disputeStatus,
                               hoverInfo.properties.acquisitionStatus,
+<<<<<<< HEAD
                               hoverInfo.properties.possessionStatus,
                               hoverInfo.properties.disbursementStatus,
                               hoverInfo.properties.compensationStatus
+=======
+                              hoverInfo.properties.possessionStatus
+>>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
                             ),
                           }}
                         ></span>
@@ -397,8 +448,13 @@ export default function GISMap({ projectId, className = '', initialMode = '2D' }
                       <div className="text-slate-500">Owner:</div>
                       <div className="font-semibold text-slate-900 truncate">{hoverInfo.properties.ownerName}</div>
                       
+<<<<<<< HEAD
                       <div className="text-slate-500">Area:</div>
                       <div className="font-semibold text-slate-900">{hoverInfo.properties.area || 1} Ha</div>
+=======
+                      <div className="text-slate-500">Acres:</div>
+                      <div className="font-semibold text-slate-900">{hoverInfo.properties.area || 1}</div>
+>>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
                       
                       <div className="text-slate-500">Acquisition:</div>
                       <div>
@@ -408,9 +464,13 @@ export default function GISMap({ projectId, className = '', initialMode = '2D' }
                             backgroundColor: getStatusColor(
                               hoverInfo.properties.disputeStatus,
                               hoverInfo.properties.acquisitionStatus,
+<<<<<<< HEAD
                               hoverInfo.properties.possessionStatus,
                               hoverInfo.properties.disbursementStatus,
                               hoverInfo.properties.compensationStatus
+=======
+                              hoverInfo.properties.possessionStatus
+>>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
                             ),
                           }}
                         >
@@ -418,6 +478,7 @@ export default function GISMap({ projectId, className = '', initialMode = '2D' }
                         </span>
                       </div>
 
+<<<<<<< HEAD
                       <div className="text-slate-500">Disbursement:</div>
                       <div className={`font-semibold ${
                         ['disbursed', 'compensation paid'].includes((hoverInfo.properties.disbursementStatus || '').toLowerCase())
@@ -432,6 +493,8 @@ export default function GISMap({ projectId, className = '', initialMode = '2D' }
                         {hoverInfo.properties.possessionStatus || 'Notice Issued'}
                       </div>
 
+=======
+>>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
                       <div className="text-slate-500">Dispute:</div>
                       <div className={`font-semibold ${hoverInfo.properties.disputeStatus === 'ACTIVE' ? 'text-rose-600' : 'text-slate-700'}`}>
                         {hoverInfo.properties.disputeStatus || 'NONE'}
@@ -462,7 +525,11 @@ export default function GISMap({ projectId, className = '', initialMode = '2D' }
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <span className="w-3.5 h-3.5 rounded-sm bg-[#10b981] opacity-60 border border-[#10b981]"></span>
+<<<<<<< HEAD
                   <span className="text-slate-700 font-semibold">Possession Handover / Disbursed / Acquired</span>
+=======
+                  <span className="text-slate-700 font-semibold">Possession Handover / Acquired</span>
+>>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="w-3.5 h-3.5 rounded-sm bg-[#f59e0b] opacity-60 border border-[#f59e0b]"></span>

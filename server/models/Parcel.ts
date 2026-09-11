@@ -9,7 +9,11 @@ const parcelSchema = new mongoose.Schema(
       trim: true,
     },
     projectId: {
+<<<<<<< HEAD
       type: mongoose.Schema.Types.Mixed,
+=======
+      type: mongoose.Schema.Types.ObjectId,
+>>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
       ref: 'Project',
       required: [true, 'Project ID reference is required'],
     },
@@ -100,6 +104,7 @@ const parcelSchema = new mongoose.Schema(
   }
 );
 
+<<<<<<< HEAD
 // Flexible Project Reference Handling:
 // Automatically resolves string project codes (e.g. "NHAI-KA-2024-EXP-087") or valid ObjectIds
 // by querying the Project model dynamically before saving or validating.
@@ -210,4 +215,7 @@ parcelSchema.pre('deleteMany', async function () {
 });
 
 const Parcel = mongoose.models.Parcel || mongoose.model('Parcel', parcelSchema);
+=======
+const Parcel = mongoose.model('Parcel', parcelSchema);
+>>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
 export default Parcel;

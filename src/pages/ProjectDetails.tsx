@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 import React, { useEffect, useState, useCallback } from 'react';
+=======
+import React, { useEffect, useState } from 'react';
+>>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import Layout from '../components/Layout';
 import { getProject, deleteProject, ProjectData, getProjectBlockers } from '../services/projectService';
@@ -17,9 +21,12 @@ import ParcelsTab from '../components/project/ParcelsTab';
 import GisTab from '../components/project/GisTab';
 import AiInsightsTab from '../components/project/AiInsightsTab';
 import AddParcelModal from '../components/project/AddParcelModal';
+<<<<<<< HEAD
 import EditProjectModal from '../components/project/EditProjectModal';
 import DeleteProjectModal from '../components/project/DeleteProjectModal';
 import { useDataSync, triggerDataSync } from '../utils/eventSync';
+=======
+>>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
 
 export const STATUTORY_STAGES = [
   'Proposal & Feasibility',
@@ -145,6 +152,7 @@ export default function ProjectDetails() {
   const [parcels, setParcels] = useState<ParcelData[]>([]);
   const [loadingParcels, setLoadingParcels] = useState(false);
   const [showParcelModal, setShowParcelModal] = useState(false);
+<<<<<<< HEAD
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [parcelError, setParcelError] = useState('');
@@ -189,6 +197,37 @@ export default function ProjectDetails() {
       fetchProjectData(false);
     }
   }, [id, fetchProjectData]));
+=======
+  const [parcelError, setParcelError] = useState('');
+  const [createParcelLoading, setCreateParcelLoading] = useState(false);
+
+  const fetchProjectData = async () => {
+    try {
+      setLoading(true);
+      if (!id) return;
+      
+      const projectRes = await getProject(id);
+      setProject(projectRes.project);
+      
+      setLoadingParcels(true);
+      const parcelsRes = await getParcels(id);
+      setParcels(parcelsRes.parcels);
+      setLoadingParcels(false);
+      
+      const blockersRes = await getProjectBlockers(id);
+      setBlockers(blockersRes.blockers);
+      
+    } catch (err: any) {
+      setError(err.message || 'Failed to load project details');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchProjectData();
+  }, [id]);
+>>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
 
   const handleDelete = async () => {
     if (!window.confirm('Are you sure you want to delete this project? This action cannot be undone.')) return;
@@ -197,7 +236,10 @@ export default function ProjectDetails() {
       setDeleteLoading(true);
       if (!id) return;
       await deleteProject(id);
+<<<<<<< HEAD
       triggerDataSync({ type: 'project_deleted', projectId: id });
+=======
+>>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
       navigate('/projects');
     } catch (err: any) {
       alert(err.message || 'Failed to delete project');
@@ -206,7 +248,11 @@ export default function ProjectDetails() {
   };
 
   const canEdit = user?.role === 'CENTRAL_AUTHORITY' || user?.role === 'STATE_AUTHORITY' || user?.role === 'DISTRICT_AUTHORITY' || user?.role === 'FIELD_OFFICER';
+<<<<<<< HEAD
   const canDelete = user?.role === 'CENTRAL_AUTHORITY' || user?.role === 'STATE_AUTHORITY' || user?.role === 'DISTRICT_AUTHORITY';
+=======
+  const canDelete = user?.role === 'CENTRAL_AUTHORITY';
+>>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
 
   const handleCreateParcel = async (parcelPayload: Partial<ParcelData>) => {
     if (!id) return;
@@ -216,8 +262,12 @@ export default function ProjectDetails() {
     try {
       await createParcel({ ...parcelPayload, projectId: id });
       setShowParcelModal(false);
+<<<<<<< HEAD
       triggerDataSync({ projectId: id, type: 'parcel_created' });
       fetchProjectData(false);
+=======
+      fetchProjectData();
+>>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
     } catch (err: any) {
       setParcelError(err.message || 'Failed to add land parcel');
       throw err;
@@ -317,21 +367,35 @@ export default function ProjectDetails() {
           <div className="flex items-center gap-3 shrink-0">
             {canEdit && (
               <button
+<<<<<<< HEAD
                 onClick={() => setShowEditModal(true)}
                 className="px-4 py-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-sm font-medium rounded-lg transition-colors shadow-xs flex items-center gap-2 cursor-pointer"
                 title="Edit project details"
               >
                 <Edit3 className="w-4 h-4 text-emerald-600" /> Edit
+=======
+                className="px-4 py-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-sm font-medium rounded-lg transition-colors shadow-sm flex items-center gap-2 cursor-pointer"
+              >
+                <Edit3 className="w-4 h-4" /> Edit
+>>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
               </button>
             )}
             {canDelete && (
               <button
+<<<<<<< HEAD
                 onClick={() => setShowDeleteModal(true)}
                 disabled={deleteLoading}
                 className="px-4 py-2 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 text-sm font-medium rounded-lg transition-colors shadow-xs flex items-center gap-2 cursor-pointer disabled:opacity-50"
                 title="Delete project"
               >
                 <Trash2 className="w-4 h-4" /> Delete
+=======
+                onClick={handleDelete}
+                disabled={deleteLoading}
+                className="px-4 py-2 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 text-sm font-medium rounded-lg transition-colors shadow-sm flex items-center gap-2 cursor-pointer disabled:opacity-50"
+              >
+                <Trash2 className="w-4 h-4" /> {deleteLoading ? 'Deleting...' : 'Delete'}
+>>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
               </button>
             )}
           </div>
@@ -701,6 +765,7 @@ export default function ProjectDetails() {
         loading={createParcelLoading}
         error={parcelError}
       />
+<<<<<<< HEAD
 
       {/* Edit Project Modal */}
       <EditProjectModal
@@ -721,6 +786,8 @@ export default function ProjectDetails() {
           navigate('/projects');
         }}
       />
+=======
+>>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
     </Layout>
   );
 }

@@ -9,7 +9,11 @@ const compensationSchema = new mongoose.Schema(
       unique: true, // One compensation record per parcel for simplicity
     },
     projectId: {
+<<<<<<< HEAD
       type: mongoose.Schema.Types.Mixed,
+=======
+      type: mongoose.Schema.Types.ObjectId,
+>>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
       ref: 'Project',
       required: [true, 'Project ID reference is required'],
     },
@@ -27,7 +31,11 @@ const compensationSchema = new mongoose.Schema(
     },
     paymentStatus: {
       type: String,
+<<<<<<< HEAD
       enum: ['PENDING', 'APPROVED', 'PARTIALLY_PAID', 'DISBURSED', 'HELD_IN_ESCROW'],
+=======
+      enum: ['PENDING', 'PARTIALLY_PAID', 'DISBURSED'],
+>>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
       default: 'PENDING',
     },
     disbursementDate: {
@@ -42,6 +50,7 @@ const compensationSchema = new mongoose.Schema(
   }
 );
 
+<<<<<<< HEAD
 compensationSchema.pre('validate', async function () {
   if (this.projectId) {
     const val = typeof this.projectId === 'string' ? this.projectId.trim() : this.projectId.toString();
@@ -64,4 +73,7 @@ compensationSchema.pre('validate', async function () {
 });
 
 const Compensation = mongoose.models.Compensation || mongoose.model('Compensation', compensationSchema);
+=======
+const Compensation = mongoose.model('Compensation', compensationSchema);
+>>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
 export default Compensation;

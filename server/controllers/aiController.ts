@@ -1,5 +1,8 @@
 import { Response } from 'express';
+<<<<<<< HEAD
 import mongoose from 'mongoose';
+=======
+>>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
 import { AuthRequest } from '../middleware/authMiddleware';
 import Project from '../models/Project';
 import Parcel from '../models/Parcel';
@@ -17,6 +20,7 @@ interface IProjectDoc {
 }
 
 interface IParcelDoc {
+<<<<<<< HEAD
   _id?: any;
   parcelId: string;
   surveyNumber?: string;
@@ -30,6 +34,15 @@ interface IParcelDoc {
   disputeStatus?: string;
   disputeDetails?: string;
   compensationAmount?: number;
+=======
+  acquisitionStatus: string;
+  disputeStatus: string;
+  area: number;
+  parcelId: string;
+  surveyNumber: string;
+  ownerName: string;
+  landType: string;
+>>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
 }
 
 interface ICompensationDoc {
@@ -43,6 +56,7 @@ interface IRnrDoc {
   rnrStatus: string;
 }
 
+<<<<<<< HEAD
 /**
  * Evaluates whether a parcel has completed acquisition/clearance.
  * Dynamically evaluates both possessionStatus ("Possession Handover")
@@ -128,10 +142,21 @@ const generateAiInsights = async (
   const totalAssessed = compensations.reduce((sum, c) => sum + (c.assessedAmount || 0), 0);
   const totalDisbursed = compensations.reduce((sum, c) => sum + (c.disbursedAmount || 0), 0);
   const pendingCompensation = Math.max(0, totalAssessed - totalDisbursed);
+=======
+const generateAiInsights = async (project: IProjectDoc, parcels: IParcelDoc[], compensations: ICompensationDoc[], rnrs: IRnrDoc[]) => {
+  const totalParcels = parcels.length;
+  const acquiredParcels = parcels.filter((p) => p.acquisitionStatus === 'ACQUIRED' || p.acquisitionStatus === 'COMPLETED').length;
+  const activeDisputes = parcels.filter((p) => p.disputeStatus === 'ACTIVE').length;
+  const totalArea = parcels.reduce((sum, p) => sum + (p.area || 0), 0);
+  const totalAssessed = compensations.reduce((sum, c) => sum + (c.assessedAmount || 0), 0);
+  const totalDisbursed = compensations.reduce((sum, c) => sum + (c.disbursedAmount || 0), 0);
+  const pendingCompensation = totalAssessed - totalDisbursed;
+>>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
   const totalRnrFamilies = rnrs.reduce((sum, r) => sum + (r.familiesAffected || 0), 0);
   const displacedFamilies = rnrs.reduce((sum, r) => sum + (r.familiesDisplaced || 0), 0);
   const rnrPending = rnrs.filter((r) => r.rnrStatus !== 'COMPLETED').length;
 
+<<<<<<< HEAD
   const parcelBreakdownText = parcels
     .map((p) => {
       const isAcq = isAcquiredParcel(p);
@@ -174,10 +199,33 @@ const generateAiInsights = async (
     - Pending Compensation: ₹${pendingCompensation.toLocaleString('en-IN')}
 
     RESETTLEMENT & REHABILITATION (R&R):
+=======
+  const promptText = `
+    You are an expert AI Administrative Advisor for the BhoomiSetu Land Acquisition System (Govt. of India).
+    Analyze the following project data and provide a concise, professional Decision Support Report.
+    Project Name: ${project.name}
+    Project Type: ${project.projectType}
+    State/District: ${project.state}, ${project.district}
+    Overall Status: ${project.status}
+
+    Land Metrics:
+    - Total Parcels: ${totalParcels}
+    - Acquired/Completed Parcels: ${acquiredParcels}
+    - Active Legal Disputes: ${activeDisputes}
+    - Total Area Tracked: ${totalArea} acres
+
+    Financials:
+    - Total Assessed Compensation: ₹${totalAssessed}
+    - Total Disbursed: ₹${totalDisbursed}
+    - Pending Compensation: ₹${pendingCompensation}
+
+    Resettlement & Rehabilitation (R&R):
+>>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
     - Total Families Affected: ${totalRnrFamilies}
     - Total Families Displaced: ${displacedFamilies}
     - Parcels with Pending R&R: ${rnrPending}
 
+<<<<<<< HEAD
     CRITICAL ACCURACY & RISK ASSESSMENT DIRECTIVES:
     1. ACCURATE PARCEL CLEARANCE: State strictly that ${acquiredParcels} out of ${totalParcels} parcels (${clearedParcelIds.join(' and ')}) are cleared with compensation disbursement and possession handover completed.
     2. UNACQUIRED COUNT: State strictly that only ${unacquiredParcels} parcel (${unacquiredParcelIds.join(', ') || 'P-003'}) remains unacquired. DO NOT state or imply there are two unacquired parcels.
@@ -187,16 +235,26 @@ const generateAiInsights = async (
     Provide your response strictly in the following JSON format without any markdown wrappers:
     {
       "executiveSummary": "A 2-3 sentence overview accurately stating that ${acquiredParcels} of ${totalParcels} parcels are cleared and only the single litigated parcel (${disputedParcelIds.join(', ') || 'P-003'}) is blocking the final Right-of-Way.",
+=======
+    Provide your response strictly in the following JSON format without any markdown wrappers (like JSON block):
+    {
+      "executiveSummary": "A 2-3 sentence overview of project health.",
+>>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
       "criticalRiskFactors": ["Risk 1", "Risk 2"],
       "recommendedActions": ["Action 1", "Action 2", "Action 3"]
     }
   `;
 
+<<<<<<< HEAD
   let aiResponse: any = null;
+=======
+  let aiResponse;
+>>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
   const apiKey = process.env.GEMINI_API_KEY;
 
   if (apiKey && apiKey.trim() !== '') {
     try {
+<<<<<<< HEAD
       const ai = new GoogleGenAI({
         apiKey,
         httpOptions: {
@@ -297,6 +355,50 @@ const generateAiInsights = async (
       disputedParcelIds,
     },
   };
+=======
+      const ai = new GoogleGenAI({ apiKey });
+      const interaction = await ai.interactions.create({
+        model: 'gemini-3.6-flash',
+        input: promptText,
+        generation_config: {
+          temperature: 0.2,
+        }
+      });
+      const rawText = interaction.output_text || "{}";
+      const cleanedText = rawText.replace(/JSON block/g, '').replace(/\`\`\`/g, '').trim();
+      aiResponse = JSON.parse(cleanedText);
+    } catch (geminiError) {
+      console.error('Gemini API Error:', geminiError);
+    }
+  }
+
+  if (!aiResponse) {
+    const risks = [];
+    const actions = [];
+          
+    if (activeDisputes > 0) {
+      risks.push(`There are ${activeDisputes} active legal disputes delaying acquisition.`);
+      actions.push('Escalate active dispute cases to the district magistrate for mediation.');
+    }
+    if (pendingCompensation > 0) {
+      risks.push(`₹${pendingCompensation} in compensation remains pending for disbursement.`);
+      actions.push('Expedite the disbursement of pending compensation to affected landowners.');
+    }
+    if (rnrPending > 0) {
+      risks.push(`R&R procedures are pending for ${rnrPending} land parcels.`);
+      actions.push('Fast-track the rehabilitation packages for displaced families.');
+    }
+    if (risks.length === 0) risks.push("No major critical risks identified at the current stage.");
+    if (actions.length === 0) actions.push("Continue monitoring standard acquisition workflow.");
+    
+    aiResponse = {
+      executiveSummary: `The ${project.name} project is currently in the '${project.status}' phase. ${acquiredParcels} out of ${totalParcels} parcels have been acquired.`,
+      criticalRiskFactors: risks,
+      recommendedActions: actions
+    };
+  }
+  return aiResponse;
+>>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
 };
 
 // @desc    Analyze Project Health and generate Insights
@@ -305,6 +407,7 @@ const generateAiInsights = async (
 export const analyzeProjectHealth = async (req: AuthRequest, res: Response) => {
   try {
     const { projectId } = req.params;
+<<<<<<< HEAD
     let project = null;
     if (mongoose.Types.ObjectId.isValid(projectId) && projectId.length === 24) {
       project = await Project.findById(projectId);
@@ -320,6 +423,14 @@ export const analyzeProjectHealth = async (req: AuthRequest, res: Response) => {
     const parcels = await Parcel.find({ projectId: { $in: queryIds } });
     const compensations = await Compensation.find({ projectId: { $in: queryIds } });
     const rnrs = await Rnr.find({ projectId: { $in: queryIds } });
+=======
+    const project = await Project.findById(projectId);
+    if (!project) return res.status(404).json({ success: false, message: 'Project not found' });
+
+    const parcels = await Parcel.find({ projectId });
+    const compensations = await Compensation.find({ projectId });
+    const rnrs = await Rnr.find({ projectId });
+>>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
 
     const aiResponse = await generateAiInsights(project, parcels, compensations, rnrs);
     res.status(200).json({ success: true, data: aiResponse });
@@ -334,6 +445,7 @@ export const analyzeProjectHealth = async (req: AuthRequest, res: Response) => {
 export const exportProjectReport = async (req: AuthRequest, res: Response) => {
   try {
     const { projectId } = req.params;
+<<<<<<< HEAD
     let project = null;
     if (mongoose.Types.ObjectId.isValid(projectId) && projectId.length === 24) {
       project = await Project.findById(projectId);
@@ -370,10 +482,24 @@ export const exportProjectReport = async (req: AuthRequest, res: Response) => {
     const totalAssessed = compensations.reduce((sum, c) => sum + (c.assessedAmount || 0), 0);
     const totalDisbursed = compensations.reduce((sum, c) => sum + (c.disbursedAmount || 0), 0);
     const pendingCompensation = Math.max(0, totalAssessed - totalDisbursed);
+=======
+    const project = await Project.findById(projectId);
+    if (!project) return res.status(404).json({ success: false, message: 'Project not found' });
+
+    const parcels = await Parcel.find({ projectId });
+    const compensations = await Compensation.find({ projectId });
+    const rnrs = await Rnr.find({ projectId });
+
+    const totalParcels = parcels.length;
+    const acquiredParcels = parcels.filter((p) => p.acquisitionStatus === 'ACQUIRED' || p.acquisitionStatus === 'COMPLETED').length;
+    const activeDisputes = parcels.filter((p) => p.disputeStatus === 'ACTIVE').length;
+    const pendingCompensation = compensations.reduce((sum, c) => sum + (c.assessedAmount || 0), 0) - compensations.reduce((sum, c) => sum + (c.disbursedAmount || 0), 0);
+>>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
     const rnrPending = rnrs.filter((r) => r.rnrStatus !== 'COMPLETED').length;
 
     const aiResponse = await generateAiInsights(project, parcels, compensations, rnrs);
 
+<<<<<<< HEAD
     let parcelDetailsText = parcels
       .map((p) => {
         const isAcq = isAcquiredParcel(p);
@@ -393,6 +519,17 @@ Clearance Audit: ${clearanceStatus} | Dispute Status: ${p.disputeStatus || 'None
 
     if (parcels.length === 0) {
       parcelDetailsText = 'No land parcels registered for this project.';
+=======
+    let parcelDetailsText = parcels.map(p => {
+      return `Parcel ID: ${p.parcelId || 'N/A'} | Survey No: ${p.surveyNumber || 'N/A'}
+Owner: ${p.ownerName || 'Unknown'} | Area: ${p.area || 0} acres | Type: ${p.landType || 'N/A'}
+Acquisition Status: ${p.acquisitionStatus || 'N/A'} | Dispute Status: ${p.disputeStatus || 'NONE'}
+- - - - - - - - - - - - - - - - - - - - - - - - - -`;
+    }).join('\n');
+
+    if (parcels.length === 0) {
+      parcelDetailsText = "No land parcels registered for this project.";
+>>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
     }
 
     // Build the report text
@@ -400,8 +537,13 @@ Clearance Audit: ${clearanceStatus} | Dispute Status: ${p.disputeStatus || 'None
 OFFICIAL BHOOMISETU PROJECT STATUS REPORT
 ==================================================
 
+<<<<<<< HEAD
 Date Generated: ${new Date().toLocaleDateString('en-IN', { dateStyle: 'long' })}
 Project ID: ${project.projectId || project._id}
+=======
+Date Generated: ${new Date().toLocaleDateString()}
+Project ID: ${project.projectId}
+>>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
 Project Name: ${project.name}
 Location: ${project.district}, ${project.state}
 Current Status: ${project.status}
@@ -410,6 +552,7 @@ Current Status: ${project.status}
 1. LAND ACQUISITION SUMMARY
 --------------------------------------------------
 Total Parcels Required: ${totalParcels}
+<<<<<<< HEAD
 Parcels Cleared & Acquired: ${acquiredParcels} (${clearedParcelIds.join(', ') || 'None'})
 Parcels Unacquired / Pending: ${unacquiredParcels} (${unacquiredParcelIds.join(', ') || 'None'})
 Active Legal Disputes: ${activeDisputes} (${disputedParcelIds.join(', ') || 'None'})
@@ -418,13 +561,21 @@ Corridor Right-of-Way Status: ${
         ? `Blocked by single litigated parcel (${disputedParcelIds.join(', ') || 'P-003'})`
         : 'Fully Cleared for Construction'
     }
+=======
+Parcels Acquired: ${acquiredParcels}
+Active Legal Disputes: ${activeDisputes}
+>>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
 
 --------------------------------------------------
 2. FINANCIAL & R&R SUMMARY
 --------------------------------------------------
+<<<<<<< HEAD
 Total Assessed Compensation: ₹${totalAssessed.toLocaleString('en-IN')}
 Total Disbursed: ₹${totalDisbursed.toLocaleString('en-IN')}
 Pending Compensation: ₹${pendingCompensation.toLocaleString('en-IN')}
+=======
+Pending Compensation: ₹${pendingCompensation}
+>>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
 Parcels with Pending R&R: ${rnrPending}
 
 --------------------------------------------------
@@ -435,6 +586,7 @@ ${parcelDetailsText}
 --------------------------------------------------
 4. SYSTEM-GENERATED OBSERVATIONS
 --------------------------------------------------
+<<<<<<< HEAD
 ${
   activeDisputes > 0
     ? `[CRITICAL BOTTLENECK] Exactly ${acquiredParcels} out of ${totalParcels} parcels are cleared. Only the single litigated parcel (${disputedParcelIds.join(', ') || 'P-003'}) is blocking the final Right-of-Way.`
@@ -445,6 +597,10 @@ ${
     ? '[WARNING] Compensation funds remain to be disbursed.'
     : '[INFO] Compensation disbursements are up to date for cleared parcels.'
 }
+=======
+${activeDisputes > 0 ? '[WARNING] Active legal disputes require immediate mediation.' : '[INFO] Legal clearance is progressing smoothly.'}
+${pendingCompensation > 0 ? '[WARNING] Compensation funds need to be disbursed.' : '[INFO] Compensation disbursements are up to date.'}
+>>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
 
 --------------------------------------------------
 5. AI EXECUTIVE SUMMARY
@@ -470,4 +626,7 @@ ${aiResponse.recommendedActions.map((action: string) => `- ${action}`).join('\n'
     res.status(500).json({ success: false, message: error.message });
   }
 };
+<<<<<<< HEAD
 
+=======
+>>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9

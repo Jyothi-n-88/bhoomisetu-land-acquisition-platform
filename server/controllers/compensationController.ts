@@ -1,10 +1,17 @@
 import { Request, Response } from 'express';
+<<<<<<< HEAD
 import mongoose from 'mongoose';
 import Compensation from '../models/Compensation';
 import Parcel from '../models/Parcel';
 import Project from '../models/Project';
 import { AuthRequest } from '../middleware/authMiddleware';
 import { syncProjectAcquiredLand } from './parcelController';
+=======
+import Compensation from '../models/Compensation';
+import Parcel from '../models/Parcel';
+import { AuthRequest } from '../middleware/authMiddleware';
+import mongoose from 'mongoose';
+>>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
 
 // @desc    Create or update compensation assessment for a parcel
 // @route   POST /api/compensation
@@ -13,6 +20,7 @@ export const createOrUpdateCompensation = async (req: AuthRequest, res: Response
   try {
     const { parcelId, projectId, assessedAmount, approvedAmount, paymentStatus } = req.body;
 
+<<<<<<< HEAD
     let resolvedProjectId = projectId;
     if (projectId) {
       const proj = await Project.findOne({
@@ -23,18 +31,27 @@ export const createOrUpdateCompensation = async (req: AuthRequest, res: Response
       }
     }
 
+=======
+>>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
     let compensation = await Compensation.findOne({ parcelId });
 
     if (compensation) {
       compensation.assessedAmount = assessedAmount !== undefined ? assessedAmount : compensation.assessedAmount;
       compensation.approvedAmount = approvedAmount !== undefined ? approvedAmount : compensation.approvedAmount;
+<<<<<<< HEAD
       if (resolvedProjectId) compensation.projectId = resolvedProjectId;
+=======
+>>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
       if (paymentStatus) compensation.paymentStatus = paymentStatus;
       await compensation.save();
     } else {
       compensation = await Compensation.create({
         parcelId,
+<<<<<<< HEAD
         projectId: resolvedProjectId,
+=======
+        projectId,
+>>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
         assessedAmount: assessedAmount || 0,
         approvedAmount: approvedAmount || 0,
         paymentStatus: paymentStatus || 'PENDING',
@@ -43,6 +60,7 @@ export const createOrUpdateCompensation = async (req: AuthRequest, res: Response
 
     // Update parcel status to match if applicable
     if (paymentStatus === 'DISBURSED') {
+<<<<<<< HEAD
       await Parcel.findByIdAndUpdate(parcelId, {
         compensationStatus: 'DISBURSED',
         disbursementStatus: 'Disbursed',
@@ -51,6 +69,9 @@ export const createOrUpdateCompensation = async (req: AuthRequest, res: Response
       if (projectId) {
         await syncProjectAcquiredLand(projectId);
       }
+=======
+      await Parcel.findByIdAndUpdate(parcelId, { compensationStatus: 'DISBURSED' });
+>>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
     } else if (approvedAmount > 0) {
       await Parcel.findByIdAndUpdate(parcelId, { compensationStatus: 'APPROVED' });
     } else if (assessedAmount > 0) {
@@ -70,6 +91,7 @@ export const getProjectCompensation = async (req: AuthRequest, res: Response) =>
   try {
     const { projectId } = req.params;
 
+<<<<<<< HEAD
     let queryIds: any[] = [projectId];
     const project = await Project.findOne({
       $or: [{ projectId }, { projectCode: projectId }, { name: projectId }],
@@ -123,6 +145,9 @@ export const getProjectCompensation = async (req: AuthRequest, res: Response) =>
         }
       }
     }
+=======
+    const compensations = await Compensation.find({ projectId }).populate('parcelId', 'parcelId surveyNumber ownerName area acquisitionStatus');
+>>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
 
     const summary = compensations.reduce(
       (acc, curr) => {
@@ -160,21 +185,28 @@ export const disburseCompensation = async (req: AuthRequest, res: Response) => {
     
     if (compensation.disbursedAmount >= compensation.approvedAmount && compensation.approvedAmount > 0) {
       compensation.paymentStatus = 'DISBURSED';
+<<<<<<< HEAD
       await Parcel.findByIdAndUpdate(compensation.parcelId, {
         compensationStatus: 'DISBURSED',
         acquisitionStatus: 'COMPENSATION_PAID',
         disbursementStatus: 'Disbursed',
       });
+=======
+      await Parcel.findByIdAndUpdate(compensation.parcelId, { compensationStatus: 'DISBURSED', acquisitionStatus: 'COMPENSATION_PAID' });
+>>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
     } else {
       compensation.paymentStatus = 'PARTIALLY_PAID';
     }
 
     await compensation.save();
 
+<<<<<<< HEAD
     if (compensation.projectId) {
       await syncProjectAcquiredLand(compensation.projectId);
     }
 
+=======
+>>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
     res.status(200).json({ success: true, compensation });
   } catch (error: any) {
     res.status(400).json({ success: false, message: error.message });

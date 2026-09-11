@@ -16,5 +16,9 @@ const otpSchema = new mongoose.Schema({
   },
 });
 
+<<<<<<< HEAD
 const OTP = mongoose.models.OTP || mongoose.model('OTP', otpSchema);
+=======
+const OTP = mongoose.model('OTP', otpSchema);
+>>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
 export default OTP;

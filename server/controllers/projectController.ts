@@ -1,11 +1,15 @@
 import { Request, Response } from 'express';
+<<<<<<< HEAD
 import mongoose from 'mongoose';
+=======
+>>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
 import Project from '../models/Project';
 import Parcel from '../models/Parcel';
 import Rnr from '../models/Rnr';
 import Compensation from '../models/Compensation';
 import { AuthRequest } from '../middleware/authMiddleware';
 
+<<<<<<< HEAD
 /**
  * Flexible project resolver that supports looking up a project by
  * MongoDB _id or string project code (e.g. "NHAI-KA-2024-EXP-087").
@@ -45,6 +49,8 @@ export const findProjectByIdOrCode = async (idOrCode: string, populateAuthoritie
   return null;
 };
 
+=======
+>>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
 // @desc    Get global dashboard metrics
 // @route   GET /api/projects/dashboard/metrics
 // @access  Private
@@ -52,6 +58,7 @@ export const getDashboardMetrics = async (req: AuthRequest, res: Response) => {
   try {
     const totalProjects = await Project.countDocuments({ status: { $ne: 'Completed' } });
 
+<<<<<<< HEAD
     // Scan all parcels across all projects to ensure dynamic calculation
     const allParcels = await Parcel.find({});
 
@@ -145,12 +152,57 @@ export const getDashboardMetrics = async (req: AuthRequest, res: Response) => {
       pendingCompensationFromParcels > 0
         ? pendingCompensationFromParcels
         : pendingCompensationFromComp;
+=======
+    const parcelAgg = await Parcel.aggregate([
+      {
+        $group: {
+          _id: null,
+          totalAcquiredArea: {
+            $sum: {
+              $cond: [
+                { $in: ['$acquisitionStatus', ['ACQUIRED', 'COMPLETED', 'POSSESSION_PENDING']] },
+                '$area',
+                0,
+              ],
+            },
+          },
+          activeDisputes: {
+            $sum: { $cond: [{ $eq: ['$disputeStatus', 'ACTIVE'] }, 1, 0] },
+          },
+        },
+      },
+    ]);
+
+    const compAgg = await Compensation.aggregate([
+      {
+        $match: {
+          paymentStatus: { $ne: 'DISBURSED' },
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          pendingCompensation: {
+            $sum: { $subtract: ['$assessedAmount', '$disbursedAmount'] },
+          },
+        },
+      },
+    ]);
+
+    const totalAcquiredArea = parcelAgg.length > 0 ? parcelAgg[0].totalAcquiredArea : 0;
+    const activeDisputes = parcelAgg.length > 0 ? parcelAgg[0].activeDisputes : 0;
+    const pendingCompensation = compAgg.length > 0 ? compAgg[0].pendingCompensation : 0;
+>>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
 
     res.status(200).json({
       success: true,
       metrics: {
         totalProjects,
+<<<<<<< HEAD
         totalAcquiredArea: Number(totalAcquiredArea.toFixed(2)),
+=======
+        totalAcquiredArea,
+>>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
         pendingCompensation,
         activeDisputes,
       },
@@ -223,6 +275,7 @@ export const getProjects = async (req: AuthRequest, res: Response) => {
 // @access  Private
 export const getProject = async (req: AuthRequest, res: Response) => {
   try {
+<<<<<<< HEAD
     const idOrCode = req.params.id;
     const project = await findProjectByIdOrCode(idOrCode, true);
     if (!project) {
@@ -302,6 +355,13 @@ export const getProject = async (req: AuthRequest, res: Response) => {
     projectObj.parcelsCount = projectParcels.length;
 
     res.status(200).json({ success: true, project: projectObj });
+=======
+    const project = await Project.findById(req.params.id).populate('assignedAuthorities', 'name email role');
+    if (!project) {
+      return res.status(404).json({ success: false, message: 'Project not found' });
+    }
+    res.status(200).json({ success: true, project });
+>>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -312,21 +372,27 @@ export const getProject = async (req: AuthRequest, res: Response) => {
 // @access  Private (CENTRAL_AUTHORITY, STATE_AUTHORITY, DISTRICT_AUTHORITY)
 export const updateProject = async (req: AuthRequest, res: Response) => {
   try {
+<<<<<<< HEAD
     const project = await findProjectByIdOrCode(req.params.id);
     if (!project) {
       return res.status(404).json({ success: false, message: 'Project not found' });
     }
 
+=======
+>>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
     const data = { ...req.body };
     if (!data.projectId && data.projectCode) {
       data.projectId = data.projectCode;
     }
+<<<<<<< HEAD
     if (data.statutoryAct && !data.statutoryFramework) {
       data.statutoryFramework = data.statutoryAct;
     }
     if (data.stage && !data.currentStage) {
       data.currentStage = data.stage;
     }
+=======
+>>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
     if (data.implementingAgency && !data.department) {
       data.department = data.implementingAgency;
     }
@@ -341,11 +407,22 @@ export const updateProject = async (req: AuthRequest, res: Response) => {
       data.expectedCompletion = new Date(updateExpDate);
       data.expectedCompletionDate = new Date(updateExpDate);
     }
+<<<<<<< HEAD
     const updated = await Project.findByIdAndUpdate(project._id, data, {
       new: true,
       runValidators: true,
     });
     res.status(200).json({ success: true, project: updated });
+=======
+    const project = await Project.findByIdAndUpdate(req.params.id, data, {
+      new: true,
+      runValidators: true,
+    });
+    if (!project) {
+      return res.status(404).json({ success: false, message: 'Project not found' });
+    }
+    res.status(200).json({ success: true, project });
+>>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
   } catch (error: any) {
     res.status(400).json({ success: false, message: error.message });
   }
@@ -353,6 +430,7 @@ export const updateProject = async (req: AuthRequest, res: Response) => {
 
 // @desc    Delete project
 // @route   DELETE /api/projects/:id
+<<<<<<< HEAD
 // @access  Private (CENTRAL_AUTHORITY, STATE_AUTHORITY, DISTRICT_AUTHORITY)
 export const deleteProject = async (req: AuthRequest, res: Response) => {
   try {
@@ -395,6 +473,16 @@ export const deleteProject = async (req: AuthRequest, res: Response) => {
       message: 'Project and all associated land parcels deleted successfully',
       deletedParcelsCount: deletedParcels.deletedCount,
     });
+=======
+// @access  Private (CENTRAL_AUTHORITY)
+export const deleteProject = async (req: AuthRequest, res: Response) => {
+  try {
+    const project = await Project.findByIdAndDelete(req.params.id);
+    if (!project) {
+      return res.status(404).json({ success: false, message: 'Project not found' });
+    }
+    res.status(200).json({ success: true, message: 'Project deleted successfully' });
+>>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -408,11 +496,16 @@ export const getProjectBlockers = async (req: AuthRequest, res: Response) => {
     const projectId = req.params.id;
     
     // Check if project exists
+<<<<<<< HEAD
     const project = await findProjectByIdOrCode(projectId);
+=======
+    const project = await Project.findById(projectId);
+>>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
     if (!project) {
       return res.status(404).json({ success: false, message: 'Project not found' });
     }
 
+<<<<<<< HEAD
     const projectIds = [project._id, project.projectId, projectId].filter(Boolean);
     const projectParcels = await Parcel.find({ projectId: { $in: projectIds } });
     let pendingCompensation = 0;
@@ -471,6 +564,12 @@ export const getProjectBlockers = async (req: AuthRequest, res: Response) => {
       }
     }
 
+=======
+    const pendingCompensation = await Parcel.countDocuments({ projectId, acquisitionStatus: 'COMPENSATION_PENDING' });
+    const activeDisputes = await Parcel.countDocuments({ projectId, disputeStatus: 'ACTIVE' });
+    const pendingPossession = await Parcel.countDocuments({ projectId, acquisitionStatus: 'POSSESSION_PENDING' });
+    
+>>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
     const rnrDocs = await Rnr.find({ projectId, rnrStatus: { $in: ['IDENTIFIED', 'PACKAGE_APPROVED', 'PENDING', 'IN_PROGRESS'] } });
     const pendingRnr = rnrDocs.reduce((acc, rnr) => acc + (rnr.affectedFamiliesCount || 0), 0);
 
@@ -478,7 +577,10 @@ export const getProjectBlockers = async (req: AuthRequest, res: Response) => {
       success: true, 
       blockers: {
         pendingCompensation,
+<<<<<<< HEAD
         pendingCompensationAmount,
+=======
+>>>>>>> e6a08d41e062aea8318adf9b32f24f0f2bbe50a9
         activeDisputes,
         pendingRnr,
         pendingPossession,
