@@ -106,7 +106,7 @@ STRICT INSTRUCTIONS:
 `;
 
         // High-availability free-tier model candidates: fail fast without artificial jitter delays
-        const candidateModels = ['gemini-3.5-flash', 'gemini-2.5-flash'];
+        const candidateModels = ['gemini-3.6-flash', 'gemini-3.5-flash-lite'];
 
         let lastModelError: any = null;
 
@@ -150,7 +150,7 @@ STRICT INSTRUCTIONS:
           }
         }
 
-        // If neither model succeeded, immediately return 503 so the frontend doesn't hang
+        // If both models fail (e.g. 404 not found, 503 unavailable, 429 quota), gracefully return 503 so frontend doesn't hang
         if (!extractedData) {
           const errMsg = lastModelError?.message || '';
           console.error('All OCR candidate models exhausted or failed:', errMsg);
@@ -162,6 +162,21 @@ STRICT INSTRUCTIONS:
         }
       } catch (ocrError: any) {
         console.error('Gemini OCR verification execution failed:', ocrError);
+        const errMsg = ocrError?.message || '';
+        // If the error was a model availability, 404, or 503 error, return 503 gracefully
+        if (
+          errMsg.includes('503') ||
+          errMsg.includes('404') ||
+          errMsg.includes('UNAVAILABLE') ||
+          errMsg.includes('high demand') ||
+          errMsg.includes('NOT_FOUND')
+        ) {
+          return res.status(503).json({
+            success: false,
+            message:
+              'The AI OCR verification service is currently experiencing high demand. Please try uploading your ID again in a moment, or use your Official Secret Key.',
+          });
+        }
         return res.status(403).json({
           success: false,
           message: 'AI Optical Verification failed: Unable to process or parse the official ID card image.',
