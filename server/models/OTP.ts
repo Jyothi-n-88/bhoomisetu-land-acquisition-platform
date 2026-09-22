@@ -9,6 +9,13 @@ const otpSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  tempUserData: {
+    name: { type: String },
+    password: { type: String }, // Pre-hashed
+    role: { type: String },
+    state: { type: String },
+    district: { type: String },
+  },
   createdAt: {
     type: Date,
     default: Date.now,

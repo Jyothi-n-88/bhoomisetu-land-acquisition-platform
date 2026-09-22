@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
+import bcrypt from 'bcryptjs';
 import { GoogleGenAI } from '@google/genai';
 import User from '../models/User';
 import OTP from '../models/OTP';
@@ -288,40 +289,41 @@ STRICT INSTRUCTIONS:
       return res.status(400).json({ success: false, message: 'User already exists' });
     }
 
-    // Create user (unverified by default)
-    const user = await User.create({
-      name,
+    // Pre-hash password before saving into temporary OTP registration record
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    // Generate 6-digit secure numeric OTP
+    const otpCode = crypto.randomInt(100000, 999999).toString();
+
+    // Upsert or create temporary registration OTP record (Users collection remains untouched)
+    await OTP.deleteMany({ email });
+    await OTP.create({
       email,
-      password,
-      role,
-      state: role === 'CENTRAL_AUTHORITY' ? undefined : state?.trim(),
-      district: (role === 'DISTRICT_AUTHORITY' || role === 'FIELD_OFFICER') ? district?.trim() : undefined,
-      authProvider: 'local',
-      isVerified: false,
+      otp: otpCode,
+      tempUserData: {
+        name,
+        password: hashedPassword,
+        role,
+        state: role === 'CENTRAL_AUTHORITY' ? undefined : state?.trim(),
+        district: (role === 'DISTRICT_AUTHORITY' || role === 'FIELD_OFFICER') ? district?.trim() : undefined,
+      },
     });
 
-    if (user) {
-      // Generate OTP
-      const otpCode = crypto.randomInt(100000, 999999).toString();
-      await OTP.create({ email, otp: otpCode });
+    // Explicit development visibility for testing if SMTP is slow/misconfigured
+    console.log('>>> REGISTRATION OTP for', email, 'IS:', otpCode);
 
-      // Explicit development visibility for testing if SMTP is slow/misconfigured
-      console.log('>>> REGISTRATION OTP for', email, 'IS:', otpCode);
+    // Send Email (graceful handling if SMTP network is unreachable)
+    await sendEmail({
+      email,
+      subject: 'BhoomiSetu Official Registration OTP',
+      message: `Your OTP for completing the BhoomiSetu official registration is: ${otpCode}. This code will expire in 5 minutes.`,
+    });
 
-      // Send Email
-      await sendEmail({
-        email,
-        subject: 'BhoomiSetu Official Registration OTP',
-        message: `Your OTP for completing the BhoomiSetu official registration is: ${otpCode}. This code will expire in 5 minutes.`,
-      });
-
-      res.status(201).json({
-        success: true,
-        message: 'Registration initiated with verified official identity. OTP sent to email.',
-      });
-    } else {
-      res.status(400).json({ success: false, message: 'Invalid user data' });
-    }
+    res.status(201).json({
+      success: true,
+      message: 'Registration initiated with verified official identity. OTP sent to email.',
+    });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
   } finally {
@@ -350,15 +352,44 @@ export const verifyOtp = async (req: Request, res: Response) => {
       return res.status(400).json({ success: false, message: 'Invalid or expired OTP' });
     }
 
-    const user = await User.findOne({ email });
+    // Check if user already exists
+    let user = await User.findOne({ email });
 
     if (!user) {
-      return res.status(400).json({ success: false, message: 'User not found' });
+      // Create user ONLY NOW using the verified temporary registration data
+      if (!otpRecord.tempUserData || !otpRecord.tempUserData.name) {
+        return res.status(400).json({
+          success: false,
+          message: 'Registration session expired or missing registration details. Please register again.',
+        });
+      }
+
+      const { name, password, role, state, district } = otpRecord.tempUserData;
+
+      user = new User({
+        name,
+        email,
+        password, // already hashed
+        role,
+        state: role === 'CENTRAL_AUTHORITY' ? undefined : state?.trim(),
+        district: (role === 'DISTRICT_AUTHORITY' || role === 'FIELD_OFFICER') ? district?.trim() : undefined,
+        authProvider: 'local',
+        isVerified: true,
+      });
+
+      // Avoid double hashing already-hashed password
+      user.isModified = function (field: string) {
+        if (field === 'password') return false;
+        return User.prototype.isModified.call(this, field);
+      };
+
+      await user.save();
+    } else {
+      user.isVerified = true;
+      await user.save();
     }
 
-    user.isVerified = true;
-    await user.save();
-
+    // Delete consumed OTP record
     await OTP.deleteOne({ _id: otpRecord._id });
 
     res.status(200).json({

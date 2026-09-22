@@ -93,7 +93,7 @@ export default function Register() {
 
     // AbortController to prevent hanging when network disconnects (ERR_QUIC_PROTOCOL_ERROR, WebSocket drop, etc.)
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 20000); // 20-second timeout limit
+    const timeoutId = setTimeout(() => controller.abort(), 60000); // 60-second timeout limit for cold starts
 
     try {
       let response: Response;
