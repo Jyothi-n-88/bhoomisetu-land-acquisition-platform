@@ -105,89 +105,60 @@ STRICT INSTRUCTIONS:
 3. Do not include markdown code block syntax (no \`\`\`json). Output pure raw JSON only.
 `;
 
-        // Multi-tier model fallback: gemini-3.1-flash-lite (fastest, high availability) -> gemini-3.1-pro-preview -> gemini-flash-latest -> gemini-3.8-flash
-        const candidateModels = [
-          'gemini-3.1-flash-lite',
-          'gemini-3.1-pro-preview',
-          'gemini-flash-latest',
-          'gemini-3.8-flash',
-        ];
+        // High-availability free-tier model candidates: fail fast without artificial jitter delays
+        const candidateModels = ['gemini-3.5-flash', 'gemini-2.5-flash'];
 
         let lastModelError: any = null;
 
         for (const model of candidateModels) {
-          // Retry each model once if encountering temporary 503 / 429
-          for (let attempt = 0; attempt < 2; attempt++) {
-            try {
-              const response = await ai.models.generateContent({
-                model,
-                contents: [
-                  {
-                    role: 'user',
-                    parts: [
-                      {
-                        inlineData: {
-                          data: base64Data,
-                          mimeType,
-                        },
+          try {
+            const response = await ai.models.generateContent({
+              model,
+              contents: [
+                {
+                  role: 'user',
+                  parts: [
+                    {
+                      inlineData: {
+                        data: base64Data,
+                        mimeType,
                       },
-                      {
-                        text: promptText,
-                      },
-                    ],
-                  },
-                ],
-                config: {
-                  temperature: 0.1,
-                  responseMimeType: 'application/json',
+                    },
+                    {
+                      text: promptText,
+                    },
+                  ],
                 },
-              });
+              ],
+              config: {
+                temperature: 0.1,
+                responseMimeType: 'application/json',
+              },
+            });
 
-              const textOutput = (response.text || '{}')
-                .replace(/```json/gi, '')
-                .replace(/```/g, '')
-                .trim();
-              extractedData = JSON.parse(textOutput);
-              if (extractedData?.govEmployeeId) break;
-            } catch (modelErr: any) {
-              lastModelError = modelErr;
-              const errMsg = modelErr.message || '';
-              const isTransient =
-                errMsg.includes('503') ||
-                errMsg.includes('UNAVAILABLE') ||
-                errMsg.includes('429') ||
-                errMsg.includes('RESOURCE_EXHAUSTED') ||
-                errMsg.includes('high demand');
-
-              console.warn(
-                `Gemini OCR model attempt with ${model} (attempt ${attempt + 1}) notice:`,
-                errMsg
-              );
-
-              if (isTransient && attempt === 0) {
-                // Brief jitter delay before retry, otherwise instantly rotate to next model
-                await new Promise((resolve) => setTimeout(resolve, 400));
-                continue;
-              }
-              break;
-            }
+            const textOutput = (response.text || '{}')
+              .replace(/```json/gi, '')
+              .replace(/```/g, '')
+              .trim();
+            extractedData = JSON.parse(textOutput);
+            if (extractedData?.govEmployeeId) break;
+          } catch (modelErr: any) {
+            lastModelError = modelErr;
+            const errMsg = modelErr.message || '';
+            console.warn(`Gemini OCR attempt with ${model} notice:`, errMsg);
+            // Immediately continue to next fallback model without retrying or delaying
           }
-          if (extractedData?.govEmployeeId) break;
         }
 
-        if (!extractedData && lastModelError) {
-          const errMsg = lastModelError.message || '';
-          if (
-            errMsg.includes('503') ||
-            errMsg.includes('UNAVAILABLE') ||
-            errMsg.includes('high demand')
-          ) {
-            return res.status(503).json({
-              success: false,
-              message:
-                'The AI OCR verification service is currently experiencing high demand. Please try uploading your ID again in a moment, or use your Official Secret Key.',
-            });
-          }
+        // If neither model succeeded, immediately return 503 so the frontend doesn't hang
+        if (!extractedData) {
+          const errMsg = lastModelError?.message || '';
+          console.error('All OCR candidate models exhausted or failed:', errMsg);
+          return res.status(503).json({
+            success: false,
+            message:
+              'The AI OCR verification service is currently experiencing high demand. Please try uploading your ID again in a moment, or use your Official Secret Key.',
+          });
         }
       } catch (ocrError: any) {
         console.error('Gemini OCR verification execution failed:', ocrError);
