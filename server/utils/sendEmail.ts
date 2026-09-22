@@ -30,5 +30,10 @@ export const sendEmail = async (options: { email: string; subject: string; messa
     text: options.message,
   };
 
-  await transporter.sendMail(mailOptions);
+  try {
+    await transporter.sendMail(mailOptions);
+    console.log(`[SMTP] Successfully sent email to ${options.email} (${options.subject})`);
+  } catch (error: any) {
+    console.error(`[SMTP ERROR] Failed to send email to ${options.email}:`, error.message);
+  }
 };

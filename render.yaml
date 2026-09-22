@@ -1,0 +1,32 @@
+services:
+  - type: web
+    name: bhoomi-setu
+    runtime: node
+    plan: starter
+    region: singapore
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: REGISTRATION_SECRET_KEY
+        value: BHOOMISETU_OFFICIAL_2026
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: VITE_MAPBOX_TOKEN
+        sync: false
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false

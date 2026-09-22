@@ -10,8 +10,8 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
-  // Connect to Database (Non-blocking for foundation phase if missing)
-  await connectDB();
+  // Connect to Database asynchronously so it doesn't block server startup
+  connectDB().catch(console.error);
 
   // Middleware
   app.use(cors());

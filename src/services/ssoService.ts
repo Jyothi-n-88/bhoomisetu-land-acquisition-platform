@@ -32,6 +32,8 @@ export const ssoRegisterRequest = async (payload: {
   name: string;
   email: string;
   role: string;
+  state?: string;
+  district?: string;
   secretKey: string;
   provider: 'google';
 }) => {

@@ -38,9 +38,10 @@ interface ICompensationDoc {
 }
 
 interface IRnrDoc {
-  familiesAffected: number;
-  familiesDisplaced: number;
-  rnrStatus: string;
+  parcelId?: any;
+  affectedFamiliesCount?: number;
+  displacedFamiliesCount?: number;
+  rnrStatus?: string;
 }
 
 /**
@@ -128,9 +129,16 @@ const generateAiInsights = async (
   const totalAssessed = compensations.reduce((sum, c) => sum + (c.assessedAmount || 0), 0);
   const totalDisbursed = compensations.reduce((sum, c) => sum + (c.disbursedAmount || 0), 0);
   const pendingCompensation = Math.max(0, totalAssessed - totalDisbursed);
-  const totalRnrFamilies = rnrs.reduce((sum, r) => sum + (r.familiesAffected || 0), 0);
-  const displacedFamilies = rnrs.reduce((sum, r) => sum + (r.familiesDisplaced || 0), 0);
-  const rnrPending = rnrs.filter((r) => r.rnrStatus !== 'COMPLETED').length;
+  const totalRnrFamilies = rnrs.reduce((sum, r) => sum + (r.affectedFamiliesCount || 0), 0);
+  const displacedFamilies = rnrs.reduce((sum, r) => sum + (r.displacedFamiliesCount || 0), 0);
+  
+  const pendingRnrParcels = rnrs.filter((r) => r.rnrStatus !== 'COMPLETED' && r.rnrStatus !== 'NOT_REQUIRED' && ((r.affectedFamiliesCount || 0) > 0 || (r.displacedFamiliesCount || 0) > 0));
+  const rnrPending = pendingRnrParcels.length;
+  
+  const pendingRnrParcelIds = pendingRnrParcels.map(r => {
+    const p = parcels.find(p => p._id && r.parcelId && p._id.toString() === r.parcelId.toString());
+    return p ? (p.parcelId || 'Unknown') : 'Unknown';
+  }).filter(id => id !== 'Unknown');
 
   const parcelBreakdownText = parcels
     .map((p) => {
@@ -176,13 +184,14 @@ const generateAiInsights = async (
     RESETTLEMENT & REHABILITATION (R&R):
     - Total Families Affected: ${totalRnrFamilies}
     - Total Families Displaced: ${displacedFamilies}
-    - Parcels with Pending R&R: ${rnrPending}
+    - Parcels with Pending R&R: ${rnrPending} ${pendingRnrParcelIds.length > 0 ? `(Parcel IDs: ${pendingRnrParcelIds.join(', ')})` : ''}
 
     CRITICAL ACCURACY & RISK ASSESSMENT DIRECTIVES:
     1. ACCURATE PARCEL CLEARANCE: State strictly that ${acquiredParcels} out of ${totalParcels} parcels (${clearedParcelIds.join(' and ')}) are cleared with compensation disbursement and possession handover completed.
     2. UNACQUIRED COUNT: State strictly that only ${unacquiredParcels} parcel (${unacquiredParcelIds.join(', ') || 'P-003'}) remains unacquired. DO NOT state or imply there are two unacquired parcels.
     3. BOTTLENECK & RIGHT-OF-WAY (RoW): Emphasize that the single litigated parcel (${disputedParcelIds.join(', ') || 'P-003'}) is the sole bottleneck blocking the final Right-of-Way corridor.
     4. RECOMMENDED ACTIONS: Recommend fast-tracking District Magistrate / Special Land Acquisition Officer (SLAO) mediation and depositing compensation into court/escrow for ${disputedParcelIds.join(', ') || 'P-003'} to clear the injunction and secure RoW under Section 3(E).
+    5. R&R OBLIGATIONS: You MUST explicitly analyze and include Rehabilitation & Resettlement (R&R) metrics in your output. Review the provided parcel data for 'Affected Families' and 'Displaced Families'. Include a summary sentence in the executive summary detailing the total count of active R&R cases and the specific parcels involved. If any parcel is flagged for R&R (e.g., ${pendingRnrParcelIds.join(', ') || 'P-001'}), generate specific Recommended Administrative Actions to fulfill those statutory requirements (e.g., "Disburse one-time livelihood financial grant for affected agricultural owners", "Finalize resettlement site allocation for displaced residential families"). Ensure the legal and financial R&R obligations are treated as critical milestones alongside compensation and possession.
 
     Provide your response strictly in the following JSON format without any markdown wrappers:
     {
@@ -206,8 +215,13 @@ const generateAiInsights = async (
         },
       });
 
-      // Try primary model first, fallback to lightweight resilient model on 503 or demand spikes
-      const candidateModels = ['gemini-3.8-flash', 'gemini-3.1-flash-lite'];
+      // Try high-availability model sequence, falling back across resilient models during 503 demand spikes
+      const candidateModels = [
+        'gemini-3.1-flash-lite',
+        'gemini-3.1-pro-preview',
+        'gemini-flash-latest',
+        'gemini-3.8-flash',
+      ];
 
       for (const modelName of candidateModels) {
         if (aiResponse && aiResponse.executiveSummary) break;
@@ -260,8 +274,8 @@ const generateAiInsights = async (
       actions.push('Release pending compensation via Direct Benefit Transfer (DBT) to cleared landowners.');
     }
     if (rnrPending > 0) {
-      risks.push(`R&R rehabilitation packages pending for ${rnrPending} land parcel(s).`);
-      actions.push('Expedite R&R verification and alternative housing plot allotments for affected families.');
+      risks.push(`R&R rehabilitation packages pending for ${rnrPending} land parcel(s) (${pendingRnrParcelIds.join(', ')}).`);
+      actions.push(`Finalize resettlement site allocation and disburse one-time livelihood financial grants for affected families in parcel(s) ${pendingRnrParcelIds.join(', ')}.`);
     }
     if (risks.length === 0) risks.push('No major critical risks identified at the current stage.');
     if (actions.length === 0) actions.push('Continue monitoring standard statutory acquisition timeline.');
@@ -271,8 +285,12 @@ const generateAiInsights = async (
         ? ` Only the single litigated parcel (${disputedParcelIds.join(', ') || 'P-003'}) remains unacquired and is blocking the final Right-of-Way.`
         : ` Right-of-Way clearance is progressing on schedule across all corridor sections.`;
 
+    const rnrSummaryText = rnrPending > 0 
+        ? ` There are ${rnrPending} active R&R cases currently pending for parcel(s) ${pendingRnrParcelIds.join(', ')}, involving ${totalRnrFamilies} affected and ${displacedFamilies} displaced families.`
+        : ` There are no active R&R statutory obligations pending.`;
+
     aiResponse = {
-      executiveSummary: `The ${project.name} project is progressing through the '${project.status || 'Acquisition'}' phase. ${acquiredParcels} out of ${totalParcels} parcels (${clearedParcelIds.join(' and ') || 'P-001 and P-002'}) are cleared with compensation disbursed and possession handed over.${bottleneckText}`,
+      executiveSummary: `The ${project.name} project is progressing through the '${project.status || 'Acquisition'}' phase. ${acquiredParcels} out of ${totalParcels} parcels (${clearedParcelIds.join(' and ') || 'P-001 and P-002'}) are cleared with compensation disbursed and possession handed over.${bottleneckText}${rnrSummaryText}`,
       criticalRiskFactors: risks,
       recommendedActions: actions,
     };
@@ -370,7 +388,16 @@ export const exportProjectReport = async (req: AuthRequest, res: Response) => {
     const totalAssessed = compensations.reduce((sum, c) => sum + (c.assessedAmount || 0), 0);
     const totalDisbursed = compensations.reduce((sum, c) => sum + (c.disbursedAmount || 0), 0);
     const pendingCompensation = Math.max(0, totalAssessed - totalDisbursed);
-    const rnrPending = rnrs.filter((r) => r.rnrStatus !== 'COMPLETED').length;
+    const totalRnrFamilies = rnrs.reduce((sum, r) => sum + (r.affectedFamiliesCount || 0), 0);
+    const displacedFamilies = rnrs.reduce((sum, r) => sum + (r.displacedFamiliesCount || 0), 0);
+    
+    const pendingRnrParcels = rnrs.filter((r) => r.rnrStatus !== 'COMPLETED' && r.rnrStatus !== 'NOT_REQUIRED' && ((r.affectedFamiliesCount || 0) > 0 || (r.displacedFamiliesCount || 0) > 0));
+    const rnrPending = pendingRnrParcels.length;
+    
+    const pendingRnrParcelIds = pendingRnrParcels.map(r => {
+      const p = parcels.find(p => p._id && r.parcelId && p._id.toString() === r.parcelId.toString());
+      return p ? (p.parcelId || 'Unknown') : 'Unknown';
+    }).filter(id => id !== 'Unknown');
 
     const aiResponse = await generateAiInsights(project, parcels, compensations, rnrs);
 
@@ -425,7 +452,9 @@ Corridor Right-of-Way Status: ${
 Total Assessed Compensation: ₹${totalAssessed.toLocaleString('en-IN')}
 Total Disbursed: ₹${totalDisbursed.toLocaleString('en-IN')}
 Pending Compensation: ₹${pendingCompensation.toLocaleString('en-IN')}
-Parcels with Pending R&R: ${rnrPending}
+Parcels with Pending R&R: ${rnrPending} ${pendingRnrParcelIds.length > 0 ? `(${pendingRnrParcelIds.join(', ')})` : ''}
+Total Families Affected: ${totalRnrFamilies}
+Total Families Displaced: ${displacedFamilies}
 
 --------------------------------------------------
 3. LAND PARCEL DETAILS

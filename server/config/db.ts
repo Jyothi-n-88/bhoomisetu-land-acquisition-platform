@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import User from '../models/User';
+import { seedPreAuthorizedOfficials } from '../models/PreAuthorizedOfficial';
 
 export const connectDB = async () => {
   try {
@@ -13,6 +14,9 @@ export const connectDB = async () => {
       dbName: 'bhoomisetu',
     });
     console.log('MongoDB Connected successfully');
+
+    // Seed pre-authorized officials dataset if empty
+    await seedPreAuthorizedOfficials().catch(console.error);
 
     // Clean up legacy indexes and align MongoDB with the current schema
     try {

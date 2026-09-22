@@ -4,7 +4,170 @@ import Project from '../models/Project';
 import Parcel from '../models/Parcel';
 import Rnr from '../models/Rnr';
 import Compensation from '../models/Compensation';
+import User from '../models/User';
+import { sendEmail } from '../utils/sendEmail';
 import { AuthRequest } from '../middleware/authMiddleware';
+
+/**
+ * Statutory guidance generator for milestone notifications
+ */
+const getMilestoneGuidance = (stageName: string): string => {
+  const lower = (stageName || '').toLowerCase();
+  if (lower.includes('3(a)') || lower.includes('3a') || lower.includes('preliminary')) {
+    return 'Statutory Milestone: Section 3(A) Preliminary Notification. Competent Authority (SLAO) and District Revenue authorities are authorized to inspect, measure land, and initiate the Joint Measurement Survey (JMS) within 30 calendar days.';
+  }
+  if (lower.includes('3(b)') || lower.includes('3b') || lower.includes('jms') || lower.includes('survey')) {
+    return 'Statutory Milestone: Joint Measurement Survey (JMS) & Section 3(B). Ground truth verification, boundary pillar demarcation, and tree/structure valuation are actively underway across all surveyed cadastral parcels.';
+  }
+  if (lower.includes('3(c)') || lower.includes('3c') || lower.includes('objection')) {
+    return 'Statutory Milestone: Section 3(C) Public Hearing of Objections. The statutory 21-day window for affected titleholders is open. Competent Authority shall hear objections and submit inquiry findings.';
+  }
+  if (lower.includes('3(d)') || lower.includes('3d') || lower.includes('declaration')) {
+    return 'Statutory Milestone: Section 3(D) Declaration of Acquisition. Gazette declaration published. The identified land vests absolutely in the government free from all encumbrances. Proceed to Section 3(G) inquiry.';
+  }
+  if (lower.includes('3(g)') || lower.includes('3g') || lower.includes('award')) {
+    return 'Statutory Milestone: Section 3(G) Determination of Amount by Competent Authority. Apply First Schedule RFCTLARR formula (Base Market Rate x Rural Multiplier + Assets + 100% Solatium + 12% Additional Market Value).';
+  }
+  if (lower.includes('disbursement') || lower.includes('compensation') || lower.includes('dbt')) {
+    return 'Statutory Milestone: Direct Benefit Transfer (DBT) Compensation Disbursement. Ensure bank account verification and release direct treasury disbursements to all cleared landowners and escrow deposits for litigated parcels.';
+  }
+  if (lower.includes('3(e)') || lower.includes('3e') || lower.includes('possession')) {
+    return 'Statutory Milestone: Section 3(E) Notice to Surrender / Possession Handover. The 60-day statutory notice period has commenced. Full physical handover of Right-of-Way (RoW) corridor to executing engineering concessionaire.';
+  }
+  if (lower.includes('completed') || lower.includes('handed over') || lower.includes('closed')) {
+    return 'Statutory Milestone: Project Right-of-Way Acquisition Successfully Completed. All statutory notices, compensation awards, and R&R rehabilitation packages have reached full legal and physical closure.';
+  }
+  return `Statutory Milestone advanced to '${stageName}'. Ensure timely statutory compliance, document uploads, and milestone tracking in BhoomiSetu.`;
+};
+
+/**
+ * Dispatches automated milestone notification emails to State Authorities, District Authorities, & Assigned Stakeholders
+ * Enforces strict Role-Based Access Control (RBAC):
+ * - Broadcasts dynamically to assigned authorities (CENTRAL_AUTHORITY, STATE_AUTHORITY, DISTRICT_AUTHORITY).
+ * - Queries and includes regional STATE_AUTHORITY and DISTRICT_AUTHORITY users.
+ * - Explicitly excludes FIELD_OFFICER accounts from general statutory milestone notifications.
+ */
+export const notifyMilestoneTransition = async (
+  project: any,
+  previousStage: string,
+  newStage: string,
+  updatedBy: any
+) => {
+  try {
+    const recipients = new Set<string>();
+
+    // Roles eligible to receive macro administrative statutory milestone alerts
+    const ALLOWED_MILESTONE_ROLES = ['CENTRAL_AUTHORITY', 'STATE_AUTHORITY', 'DISTRICT_AUTHORITY'];
+
+    // 1. Fetch explicitly assigned authorities on this project (excluding FIELD_OFFICER)
+    if (project.assignedAuthorities && project.assignedAuthorities.length > 0) {
+      const assignedUsers = await User.find(
+        {
+          _id: { $in: project.assignedAuthorities },
+          role: { $in: ALLOWED_MILESTONE_ROLES },
+        },
+        'email name role'
+      );
+      assignedUsers.forEach((u) => {
+        if (u.email) recipients.add(u.email.toLowerCase().trim());
+      });
+    }
+
+    // 2. Fetch Central Authorities (National Oversight)
+    // Central Authorities possess nationwide administrative jurisdiction and must always be notified of milestone advancements
+    const centralAuthorities = await User.find(
+      { role: 'CENTRAL_AUTHORITY' },
+      'email name role'
+    );
+    centralAuthorities.forEach((u) => {
+      if (u.email) recipients.add(u.email.toLowerCase().trim());
+    });
+
+    // 3. Fetch jurisdictional State and District Authorities
+    // Queries all STATE_AUTHORITY and DISTRICT_AUTHORITY users in the system / regional jurisdiction
+    const regionalAuthorityConditions: any[] = [
+      { role: 'STATE_AUTHORITY' },
+      { role: 'DISTRICT_AUTHORITY' },
+    ];
+
+    const jurisdictionalAuthorities = await User.find(
+      {
+        $or: regionalAuthorityConditions,
+        role: { $ne: 'FIELD_OFFICER' }, // Strict negative guarantee
+      },
+      'email name role district state'
+    );
+
+    jurisdictionalAuthorities.forEach((u: any) => {
+      // If user has district/state filters matching the project, or broad jurisdiction:
+      const matchesDistrict = !u.district || (project.district && new RegExp(`^${project.district}$`, 'i').test(u.district));
+      const matchesState = !u.state || (project.state && new RegExp(`^${project.state}$`, 'i').test(u.state));
+
+      if (matchesDistrict && matchesState && u.email) {
+        recipients.add(u.email.toLowerCase().trim());
+      }
+    });
+
+    // 4. Include current updating user's email only if they belong to an authorized supervisory role
+    if (updatedBy?.email && ALLOWED_MILESTONE_ROLES.includes(updatedBy.role)) {
+      recipients.add(updatedBy.email.toLowerCase().trim());
+    }
+
+    // 5. Strict RBAC guarantee: Filter out any potential FIELD_OFFICER emails
+    const fieldOfficers = await User.find({ role: 'FIELD_OFFICER' }, 'email');
+    fieldOfficers.forEach((fo) => {
+      if (fo.email) {
+        recipients.delete(fo.email.toLowerCase().trim());
+      }
+    });
+
+    // 6. Fallback recipient if no active authorities exist in the environment
+    if (recipients.size === 0) {
+      recipients.add('district.authority@bhoomisetu.gov.in');
+    }
+
+    const milestoneGuidance = getMilestoneGuidance(newStage);
+    const subject = `[BhoomiSetu] Statutory Milestone Alert: ${project.name} transitioned to ${newStage}`;
+    const message = `
+BHOOMISETU STATUTORY LAND ACQUISITION MONITORING SYSTEM
+AUTOMATED MILESTONE TRANSITION NOTICE
+--------------------------------------------------------------------------------
+Project Name: ${project.name}
+Project Code: ${project.projectId || project.projectCode || 'N/A'}
+Statutory Framework: ${project.statutoryFramework || 'RFCTLARR Act, 2013'}
+State / District: ${project.state} / ${project.district}
+Implementing Agency: ${project.implementingAgency || project.department || 'National Highways Authority of India'}
+
+MILESTONE TRANSITION RECORD:
+• Previous Statutory Milestone: ${previousStage}
+• New Statutory Milestone: ${newStage}
+• Triggered By: ${updatedBy?.name || updatedBy?.email || 'Authorized Authority'} (${updatedBy?.role || 'SYSTEM'})
+• Transition Date/Time: ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}
+
+STATUTORY DIRECTIVE & ACTION REQUIRED:
+${milestoneGuidance}
+
+PORTAL ACCESS:
+Please log in to the BhoomiSetu platform to inspect updated cadastral parcels, review R&R rehabilitation packages, or execute compensation awards.
+
+--------------------------------------------------------------------------------
+Notice ID: BS-NOTIF-${Date.now().toString(36).toUpperCase()}
+Generated automatically by BhoomiSetu under the National Land Governance Portal.
+`;
+
+    // Dispatch emails asynchronously
+    const emailPromises = Array.from(recipients).map((email) =>
+      sendEmail({ email, subject, message }).catch((err) => {
+        console.error(`Failed to send milestone notification to ${email}:`, err.message);
+      })
+    );
+
+    await Promise.allSettled(emailPromises);
+    console.log(`Dispatched milestone transition email alerts to ${recipients.size} stakeholder(s):`, Array.from(recipients));
+  } catch (err: any) {
+    console.error('Error dispatching milestone notification email:', err.message);
+  }
+};
 
 /**
  * Flexible project resolver that supports looking up a project by
@@ -341,10 +504,17 @@ export const updateProject = async (req: AuthRequest, res: Response) => {
       data.expectedCompletion = new Date(updateExpDate);
       data.expectedCompletionDate = new Date(updateExpDate);
     }
+    const previousStage = project.currentStage || 'Proposal & Feasibility';
     const updated = await Project.findByIdAndUpdate(project._id, data, {
       new: true,
       runValidators: true,
     });
+
+    // Automated Milestone Notification Trigger when currentStage transitions
+    if (updated && data.currentStage && data.currentStage !== previousStage) {
+      notifyMilestoneTransition(updated, previousStage, data.currentStage, req.user);
+    }
+
     res.status(200).json({ success: true, project: updated });
   } catch (error: any) {
     res.status(400).json({ success: false, message: error.message });

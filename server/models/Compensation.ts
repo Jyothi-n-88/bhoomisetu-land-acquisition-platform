@@ -36,6 +36,37 @@ const compensationSchema = new mongoose.Schema(
     bankReferenceNumber: {
       type: String,
     },
+    baseMarketRate: {
+      type: Number,
+      default: 0,
+    },
+    areaInAcres: {
+      type: Number,
+      default: 0,
+    },
+    isRural: {
+      type: Boolean,
+      default: false,
+    },
+    multiplierFactor: {
+      type: Number,
+      default: 1.0,
+    },
+    assetsValue: {
+      type: Number,
+      default: 0,
+    },
+    solatiumAmount: {
+      type: Number,
+      default: 0,
+    },
+    additionalMarketValue: {
+      type: Number,
+      default: 0,
+    },
+    calculationBreakdown: {
+      type: mongoose.Schema.Types.Mixed,
+    },
   },
   {
     timestamps: true,

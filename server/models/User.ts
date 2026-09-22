@@ -39,6 +39,32 @@ const userSchema = new mongoose.Schema(
       ],
       required: [true, 'Please provide a role'],
     },
+    state: {
+      type: String,
+      trim: true,
+      validate: {
+        validator: function (this: any, val: string) {
+          if (this.role === 'STATE_AUTHORITY' || this.role === 'DISTRICT_AUTHORITY' || this.role === 'FIELD_OFFICER') {
+            return typeof val === 'string' && val.trim().length > 0;
+          }
+          return true;
+        },
+        message: 'State is mandatory for State Authority, District Authority, and Field Officer roles.',
+      },
+    },
+    district: {
+      type: String,
+      trim: true,
+      validate: {
+        validator: function (this: any, val: string) {
+          if (this.role === 'DISTRICT_AUTHORITY' || this.role === 'FIELD_OFFICER') {
+            return typeof val === 'string' && val.trim().length > 0;
+          }
+          return true;
+        },
+        message: 'District is strictly mandatory for District Authority and Field Officer roles.',
+      },
+    },
     isVerified: {
       type: Boolean,
       default: false,
@@ -48,6 +74,24 @@ const userSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
+
+// Pre-save hook to enforce role-based location integrity (async for modern Mongoose)
+userSchema.pre('save', async function () {
+  if (this.role === 'CENTRAL_AUTHORITY') {
+    // Optional / cleared for Central Authority
+  } else if (this.role === 'STATE_AUTHORITY') {
+    if (!this.state || this.state.trim().length === 0) {
+      throw new Error('State is required for State Authority users.');
+    }
+  } else if (this.role === 'DISTRICT_AUTHORITY' || this.role === 'FIELD_OFFICER') {
+    if (!this.state || this.state.trim().length === 0) {
+      throw new Error(`State is required for ${this.role.replace('_', ' ')} users.`);
+    }
+    if (!this.district || this.district.trim().length === 0) {
+      throw new Error(`District is required for ${this.role.replace('_', ' ')} users.`);
+    }
+  }
+});
 
 // Hash password before saving
 userSchema.pre('save', async function () {

@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useGoogleLogin } from '@react-oauth/google';
-import { Shield, KeyRound, AlertCircle, UserPlus, Globe, CheckCircle2 } from 'lucide-react';
+import { Shield, KeyRound, AlertCircle, UserPlus, Globe, CheckCircle2, MapPin, UploadCloud, FileCheck2, Sparkles } from 'lucide-react';
 import { useAuth, Role } from '../context/AuthContext';
 import { ssoRegisterRequest, fetchGoogleUserInfo } from '../services/ssoService';
+import { INDIAN_STATES_AND_UT, COMMON_DISTRICTS } from '../utils/indiaLocations';
 
 export default function Register() {
   // Manual Registration State
@@ -11,7 +12,13 @@ export default function Register() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState<Role>('FIELD_OFFICER');
+  const [state, setState] = useState('');
+  const [district, setDistrict] = useState('');
   const [secretKey, setSecretKey] = useState('');
+  const [idProofFile, setIdProofFile] = useState<File | null>(null);
+  const [idProofPreview, setIdProofPreview] = useState<string | null>(null);
+  const [verificationMode, setVerificationMode] = useState<'ai_ocr' | 'secret_key'>('ai_ocr');
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -27,11 +34,15 @@ export default function Register() {
     name: string;
     email: string;
     role: Role;
+    state: string;
+    district: string;
     secretKey: string;
   }>({
     name: '',
     email: '',
     role: 'FIELD_OFFICER',
+    state: '',
+    district: '',
     secretKey: '',
   });
   const [ssoModalError, setSsoModalError] = useState('');
@@ -49,27 +60,125 @@ export default function Register() {
   const handleManualSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    // Frontend validation for location requirements
+    if (role === 'STATE_AUTHORITY' && !state.trim()) {
+      setError('Please select/enter your assigned State.');
+      return;
+    }
+    if ((role === 'DISTRICT_AUTHORITY' || role === 'FIELD_OFFICER')) {
+      if (!state.trim()) {
+        setError('Please select/enter your assigned State.');
+        return;
+      }
+      if (!district.trim()) {
+        setError('Please enter/select your assigned District.');
+        return;
+      }
+    }
+
+    if (verificationMode === 'ai_ocr' && !idProofFile) {
+      setError('Please upload your official Government Identity Card for AI Verification.');
+      return;
+    }
+
+    if (verificationMode === 'secret_key' && !secretKey.trim()) {
+      setError('Please enter the Official Secret Key.');
+      return;
+    }
+
     setLoading(true);
+    setError('');
+    setShowOtpModal(false);
+
+    // AbortController to prevent hanging when network disconnects (ERR_QUIC_PROTOCOL_ERROR, WebSocket drop, etc.)
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 20000); // 20-second timeout limit
 
     try {
-      const response = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, password, role, secretKey }),
-      });
+      let response: Response;
 
-      const data = await response.json();
+      if (idProofFile) {
+        // Send multipart/form-data with ID proof image
+        const formData = new FormData();
+        formData.append('name', name);
+        formData.append('email', email);
+        formData.append('password', password);
+        formData.append('role', role);
+        formData.append('verificationMode', verificationMode);
+        if (role !== 'CENTRAL_AUTHORITY' && state.trim()) {
+          formData.append('state', state.trim());
+        }
+        if ((role === 'DISTRICT_AUTHORITY' || role === 'FIELD_OFFICER') && district.trim()) {
+          formData.append('district', district.trim());
+        }
+        if (secretKey.trim()) {
+          formData.append('secretKey', secretKey.trim());
+        }
+        formData.append('idProof', idProofFile);
 
-      if (response.ok) {
-        // Show OTP modal instead of logging in directly
+        response = await fetch('/api/auth/register', {
+          method: 'POST',
+          body: formData,
+          signal: controller.signal,
+        });
+      } else {
+        // Standard JSON submission with secretKey
+        response = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name,
+            email,
+            password,
+            role,
+            verificationMode,
+            state: role === 'CENTRAL_AUTHORITY' ? undefined : state.trim(),
+            district: (role === 'DISTRICT_AUTHORITY' || role === 'FIELD_OFFICER') ? district.trim() : undefined,
+            secretKey,
+          }),
+          signal: controller.signal,
+        });
+      }
+
+      clearTimeout(timeoutId);
+
+      let data: any = {};
+      const rawText = await response.text();
+      try {
+        data = JSON.parse(rawText);
+      } catch (parseErr) {
+        console.error("Failed to parse JSON. Raw response from server:", rawText);
+        data = { success: false, message: 'Server returned an invalid format. Check console for raw text.' };
+      }
+
+      // Strictly verify response status is OK and data.success is explicitly true
+      if (response.ok && data.success === true) {
         setShowOtpModal(true);
       } else {
-        setError(data.message || 'Registration failed');
+        // Guarantee OTP modal is hidden on failed/rejected registration
+        setShowOtpModal(false);
+        const errMsg = data.message || data.error || data.detail || 'Official registration was rejected.';
+        setError(errMsg);
+        // Scroll to top so user clearly sees the error banner
+        window.scrollTo({ top: 0, behavior: 'smooth' });
       }
     } catch (err: any) {
-      setError('An error occurred during registration. Please check your connection.');
+      clearTimeout(timeoutId);
+      setShowOtpModal(false);
+
+      if (err?.name === 'AbortError') {
+        setError('The connection timed out while verifying the ID card. Please try again.');
+      } else {
+        const networkErrMsg = err?.response?.data?.message || err?.message || 'An error occurred during registration. Please check your connection.';
+        setError(networkErrMsg);
+      }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } finally {
+      clearTimeout(timeoutId);
       setLoading(false);
+      // Guarantee modal is never left lingering on failure
+      setShowOtpModal((prev) => prev);
     }
   };
 
@@ -106,6 +215,8 @@ export default function Register() {
       name: retrievedName,
       email: retrievedEmail,
       role: 'FIELD_OFFICER',
+      state: '',
+      district: '',
       secretKey: '',
     });
     setSsoModalError('');
@@ -149,6 +260,23 @@ export default function Register() {
   const handleSsoModalSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSsoModalError('');
+
+    // Role-based location checks
+    if (ssoData.role === 'STATE_AUTHORITY' && !ssoData.state.trim()) {
+      setSsoModalError('State is mandatory for State Authority registration.');
+      return;
+    }
+    if ((ssoData.role === 'DISTRICT_AUTHORITY' || ssoData.role === 'FIELD_OFFICER')) {
+      if (!ssoData.state.trim()) {
+        setSsoModalError(`State is mandatory for ${ssoData.role.replace('_', ' ')} registration.`);
+        return;
+      }
+      if (!ssoData.district.trim()) {
+        setSsoModalError(`District is mandatory for ${ssoData.role.replace('_', ' ')} registration.`);
+        return;
+      }
+    }
+
     setSsoLoading(true);
 
     try {
@@ -156,6 +284,8 @@ export default function Register() {
         name: ssoData.name,
         email: ssoData.email,
         role: ssoData.role,
+        state: ssoData.role === 'CENTRAL_AUTHORITY' ? undefined : ssoData.state.trim(),
+        district: (ssoData.role === 'DISTRICT_AUTHORITY' || ssoData.role === 'FIELD_OFFICER') ? ssoData.district.trim() : undefined,
         secretKey: ssoData.secretKey,
         provider: 'google',
       });
@@ -261,7 +391,16 @@ export default function Register() {
             <label className="block text-sm font-medium text-slate-700 mb-1">Authority Designation / Role</label>
             <select
               value={role}
-              onChange={(e) => setRole(e.target.value as Role)}
+              onChange={(e) => {
+                const newRole = e.target.value as Role;
+                setRole(newRole);
+                if (newRole === 'CENTRAL_AUTHORITY') {
+                  setState('');
+                  setDistrict('');
+                } else if (newRole === 'STATE_AUTHORITY') {
+                  setDistrict('');
+                }
+              }}
               className="w-full px-3.5 py-2 border border-slate-300 rounded-lg text-sm text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-colors bg-white"
             >
               <option value="CENTRAL_AUTHORITY">Central Authority</option>
@@ -271,26 +410,199 @@ export default function Register() {
             </select>
           </div>
 
-          {/* Required Official Secret Key Field */}
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1 flex items-center justify-between">
-              <span>Official Secret Key</span>
-              <span className="text-xs text-amber-600 font-semibold">Invite-Only</span>
-            </label>
-            <div className="relative">
-              <input
-                type="text"
-                required
-                value={secretKey}
-                onChange={(e) => setSecretKey(e.target.value)}
-                className="w-full pl-9 pr-3.5 py-2 border border-slate-300 rounded-lg text-sm font-mono text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-colors"
-                placeholder="Enter government registration token"
-              />
-              <KeyRound className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+          {/* Dynamic Jurisdictional Location Fields */}
+          {role !== 'CENTRAL_AUTHORITY' && (
+            <div className="space-y-4 p-3.5 bg-slate-50 border border-slate-200/80 rounded-lg transition-all animate-fadeIn">
+              <div className="flex items-center gap-2 text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                <MapPin className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Jurisdictional Assignment</span>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-slate-700 mb-1 flex items-center justify-between">
+                  <span>Assigned State</span>
+                  <span className="text-rose-500 font-semibold">*Mandatory</span>
+                </label>
+                <input
+                  type="text"
+                  list="registered-states-list"
+                  required
+                  value={state}
+                  onChange={(e) => {
+                    setState(e.target.value);
+                  }}
+                  className="w-full px-3.5 py-2 border border-slate-300 rounded-lg text-sm text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none bg-white transition-colors"
+                  placeholder="Select or type state (e.g., Maharashtra)"
+                />
+                <datalist id="registered-states-list">
+                  {INDIAN_STATES_AND_UT.map((st) => (
+                    <option key={st} value={st} />
+                  ))}
+                </datalist>
+              </div>
+
+              {(role === 'DISTRICT_AUTHORITY' || role === 'FIELD_OFFICER') && (
+                <div>
+                  <label className="block text-xs font-medium text-slate-700 mb-1 flex items-center justify-between">
+                    <span>Assigned District</span>
+                    <span className="text-rose-500 font-semibold">*Mandatory</span>
+                  </label>
+                  <input
+                    type="text"
+                    list="registered-districts-list"
+                    required
+                    value={district}
+                    onChange={(e) => setDistrict(e.target.value)}
+                    className="w-full px-3.5 py-2 border border-slate-300 rounded-lg text-sm text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none bg-white transition-colors"
+                    placeholder="Select or type district (e.g., Pune)"
+                  />
+                  <datalist id="registered-districts-list">
+                    {(COMMON_DISTRICTS[state] || []).map((dist) => (
+                      <option key={dist} value={dist} />
+                    ))}
+                  </datalist>
+                </div>
+              )}
             </div>
-            <p className="text-[11px] text-slate-500 mt-1">
-              Validation key issued by the BhoomiSetu System Administrator.
-            </p>
+          )}
+
+          {/* Verification Method: AI Pre-Authorized ID Card OCR or Secret Key */}
+          <div className="pt-1">
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700">
+                Official Credential Verification
+              </label>
+              <div className="flex items-center gap-1 bg-slate-100 p-0.5 rounded-lg text-xs font-medium">
+                <button
+                  type="button"
+                  onClick={() => setVerificationMode('ai_ocr')}
+                  className={`px-2.5 py-1 rounded-md transition-all flex items-center gap-1.5 ${
+                    verificationMode === 'ai_ocr'
+                      ? 'bg-white text-emerald-700 shadow-xs font-semibold'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>AI ID Card OCR</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setVerificationMode('secret_key')}
+                  className={`px-2.5 py-1 rounded-md transition-all flex items-center gap-1.5 ${
+                    verificationMode === 'secret_key'
+                      ? 'bg-white text-emerald-700 shadow-xs font-semibold'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <KeyRound className="w-3.5 h-3.5" />
+                  <span>Official Key</span>
+                </button>
+              </div>
+            </div>
+
+            {verificationMode === 'ai_ocr' ? (
+              <div className="space-y-2 p-3 bg-emerald-50/50 border border-emerald-200/70 rounded-lg animate-fadeIn">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <span className="text-xs font-semibold text-emerald-950 flex items-center gap-1.5">
+                      <FileCheck2 className="w-4 h-4 text-emerald-600" />
+                      Government Identity Card Scan
+                    </span>
+                    <p className="text-[11px] text-emerald-800/80 mt-0.5">
+                      Upload your Service / ID card. Gemini Vision AI will extract your Employee ID and verify pre-authorization.
+                    </p>
+                  </div>
+                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded-full border border-emerald-200">
+                    RAM Protected
+                  </span>
+                </div>
+
+                <div
+                  onClick={() => fileInputRef.current?.click()}
+                  className={`border-2 border-dashed rounded-lg p-3 text-center cursor-pointer transition-colors ${
+                    idProofFile
+                      ? 'border-emerald-500 bg-white'
+                      : 'border-slate-300 hover:border-emerald-400 bg-white/70'
+                  }`}
+                >
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        setIdProofFile(file);
+                        const reader = new FileReader();
+                        reader.onload = () => setIdProofPreview(reader.result as string);
+                        reader.readAsDataURL(file);
+                      }
+                    }}
+                  />
+
+                  {idProofFile ? (
+                    <div className="flex items-center justify-between gap-3 text-left">
+                      <div className="flex items-center gap-3">
+                        {idProofPreview && (
+                          <img
+                            src={idProofPreview}
+                            alt="ID Preview"
+                            className="w-12 h-10 object-cover rounded border border-slate-200"
+                          />
+                        )}
+                        <div className="overflow-hidden">
+                          <p className="text-xs font-semibold text-slate-800 truncate max-w-[190px]">
+                            {idProofFile.name}
+                          </p>
+                          <p className="text-[10px] text-slate-500">
+                            {(idProofFile.size / 1024).toFixed(1)} KB • Ready for OCR
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setIdProofFile(null);
+                          setIdProofPreview(null);
+                          if (fileInputRef.current) fileInputRef.current.value = '';
+                        }}
+                        className="text-xs text-rose-600 hover:text-rose-700 font-semibold px-2 py-1 hover:bg-rose-50 rounded"
+                      >
+                        Change
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="py-2 flex flex-col items-center justify-center gap-1">
+                      <UploadCloud className="w-6 h-6 text-emerald-600" />
+                      <p className="text-xs font-medium text-slate-700">
+                        Click or drag ID Card image here
+                      </p>
+                      <p className="text-[10px] text-slate-400">
+                        Supports PNG, JPG, JPEG (Max 10MB)
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-1.5">
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={secretKey}
+                    onChange={(e) => setSecretKey(e.target.value)}
+                    className="w-full pl-9 pr-3.5 py-2 border border-slate-300 rounded-lg text-sm font-mono text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-colors"
+                    placeholder="Enter government registration token"
+                  />
+                  <KeyRound className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                </div>
+                <p className="text-[11px] text-slate-500">
+                  Fallback registration token issued by the BhoomiSetu System Administrator.
+                </p>
+              </div>
+            )}
           </div>
 
           <button
@@ -419,7 +731,15 @@ export default function Register() {
                 </label>
                 <select
                   value={ssoData.role}
-                  onChange={(e) => setSsoData({ ...ssoData, role: e.target.value as Role })}
+                  onChange={(e) => {
+                    const newRole = e.target.value as Role;
+                    setSsoData((prev) => ({
+                      ...prev,
+                      role: newRole,
+                      state: newRole === 'CENTRAL_AUTHORITY' ? '' : prev.state,
+                      district: (newRole === 'CENTRAL_AUTHORITY' || newRole === 'STATE_AUTHORITY') ? '' : prev.district,
+                    }));
+                  }}
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-900 focus:ring-2 focus:ring-emerald-500 outline-none bg-white"
                 >
                   <option value="CENTRAL_AUTHORITY">Central Authority</option>
@@ -428,6 +748,60 @@ export default function Register() {
                   <option value="FIELD_OFFICER">Field Officer</option>
                 </select>
               </div>
+
+              {/* Dynamic Jurisdictional Location Fields for SSO Modal */}
+              {ssoData.role !== 'CENTRAL_AUTHORITY' && (
+                <div className="space-y-3 p-3 bg-slate-50 border border-slate-200/80 rounded-lg">
+                  <div className="flex items-center gap-2 text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                    <MapPin className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>Jurisdictional Assignment</span>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-slate-700 mb-1 flex items-center justify-between">
+                      <span>Assigned State</span>
+                      <span className="text-rose-500 font-semibold">*Mandatory</span>
+                    </label>
+                    <input
+                      type="text"
+                      list="sso-states-list"
+                      required
+                      value={ssoData.state}
+                      onChange={(e) => setSsoData({ ...ssoData, state: e.target.value })}
+                      className="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-sm text-slate-900 focus:ring-2 focus:ring-emerald-500 outline-none bg-white"
+                      placeholder="Select or type state"
+                    />
+                    <datalist id="sso-states-list">
+                      {INDIAN_STATES_AND_UT.map((st) => (
+                        <option key={st} value={st} />
+                      ))}
+                    </datalist>
+                  </div>
+
+                  {(ssoData.role === 'DISTRICT_AUTHORITY' || ssoData.role === 'FIELD_OFFICER') && (
+                    <div>
+                      <label className="block text-xs font-medium text-slate-700 mb-1 flex items-center justify-between">
+                        <span>Assigned District</span>
+                        <span className="text-rose-500 font-semibold">*Mandatory</span>
+                      </label>
+                      <input
+                        type="text"
+                        list="sso-districts-list"
+                        required
+                        value={ssoData.district}
+                        onChange={(e) => setSsoData({ ...ssoData, district: e.target.value })}
+                        className="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-sm text-slate-900 focus:ring-2 focus:ring-emerald-500 outline-none bg-white"
+                        placeholder="Select or type district"
+                      />
+                      <datalist id="sso-districts-list">
+                        {(COMMON_DISTRICTS[ssoData.state] || []).map((dist) => (
+                          <option key={dist} value={dist} />
+                        ))}
+                      </datalist>
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1 flex items-center justify-between">

@@ -5,13 +5,64 @@ import Parcel from '../models/Parcel';
 import Project from '../models/Project';
 import { AuthRequest } from '../middleware/authMiddleware';
 import { syncProjectAcquiredLand } from './parcelController';
+import { calculateRfctlarrCompensation, RfctlarrInput } from '../utils/rfctlarrCalculator';
+
+// @desc    Calculate statutory RFCTLARR award preview without saving
+// @route   POST /api/compensation/calculate-award
+// @access  Private
+export const calculateAwardPreview = async (req: AuthRequest, res: Response) => {
+  try {
+    const { baseMarketRate, areaInAcres, isRural, multiplierFactor, assetsValue, yearsFromNotification, parcelId } = req.body;
+
+    let targetArea = areaInAcres !== undefined ? Number(areaInAcres) : undefined;
+    let targetIsRural = isRural !== undefined ? Boolean(isRural) : undefined;
+
+    if (parcelId && (targetArea === undefined || targetIsRural === undefined)) {
+      const parcel = await Parcel.findById(parcelId);
+      if (parcel) {
+        if (targetArea === undefined && parcel.area) {
+          targetArea = Number((Number(parcel.area) * 2.47105).toFixed(4));
+        }
+        if (targetIsRural === undefined) {
+          targetIsRural = ['Agricultural', 'Forest'].includes(parcel.landType || '');
+        }
+      }
+    }
+
+    const breakdown = calculateRfctlarrCompensation({
+      baseMarketRate: Number(baseMarketRate) || 0,
+      areaInAcres: targetArea || 1,
+      isRural: targetIsRural ?? false,
+      multiplierFactor: multiplierFactor !== undefined ? Number(multiplierFactor) : undefined,
+      assetsValue: assetsValue !== undefined ? Number(assetsValue) : 0,
+      yearsFromNotification: yearsFromNotification !== undefined ? Number(yearsFromNotification) : 1,
+    });
+
+    res.status(200).json({ success: true, breakdown });
+  } catch (error: any) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+};
 
 // @desc    Create or update compensation assessment for a parcel
 // @route   POST /api/compensation
 // @access  Private
 export const createOrUpdateCompensation = async (req: AuthRequest, res: Response) => {
   try {
-    const { parcelId, projectId, assessedAmount, approvedAmount, paymentStatus } = req.body;
+    const {
+      parcelId,
+      projectId,
+      assessedAmount,
+      approvedAmount,
+      paymentStatus,
+      baseMarketRate,
+      areaInAcres,
+      isRural,
+      multiplierFactor,
+      assetsValue,
+      yearsFromNotification,
+      calculateRfctlarr,
+    } = req.body;
 
     let resolvedProjectId = projectId;
     if (projectId) {
@@ -23,21 +74,77 @@ export const createOrUpdateCompensation = async (req: AuthRequest, res: Response
       }
     }
 
+    // Check if RFCTLARR automated calculation should be triggered
+    let finalAssessed = assessedAmount !== undefined ? Number(assessedAmount) : undefined;
+    let finalApproved = approvedAmount !== undefined ? Number(approvedAmount) : undefined;
+    let rfctlarrData: any = {};
+
+    const shouldCalculate = calculateRfctlarr || (baseMarketRate !== undefined && baseMarketRate !== null && baseMarketRate !== '');
+    if (shouldCalculate) {
+      const parcel = await Parcel.findById(parcelId);
+
+      let calcArea = areaInAcres !== undefined ? Number(areaInAcres) : undefined;
+      if (calcArea === undefined && parcel?.area) {
+        // Convert hectares to acres (1 ha = 2.47105 acres)
+        calcArea = Number((Number(parcel.area) * 2.47105).toFixed(4));
+      }
+
+      let calcRural = isRural !== undefined ? Boolean(isRural) : undefined;
+      if (calcRural === undefined && parcel) {
+        calcRural = ['Agricultural', 'Forest'].includes(parcel.landType || '');
+      }
+
+      const breakdown = calculateRfctlarrCompensation({
+        baseMarketRate: Number(baseMarketRate) || 0,
+        areaInAcres: calcArea || 1,
+        isRural: calcRural ?? false,
+        multiplierFactor: multiplierFactor !== undefined ? Number(multiplierFactor) : undefined,
+        assetsValue: assetsValue !== undefined ? Number(assetsValue) : 0,
+        yearsFromNotification: yearsFromNotification !== undefined ? Number(yearsFromNotification) : 1,
+      });
+
+      finalAssessed = breakdown.totalCompensationAward;
+      if (finalApproved === undefined) {
+        finalApproved = breakdown.totalCompensationAward;
+      }
+
+      rfctlarrData = {
+        baseMarketRate: breakdown.baseMarketRate,
+        areaInAcres: breakdown.areaInAcres,
+        isRural: breakdown.isRural,
+        multiplierFactor: breakdown.multiplierFactor,
+        assetsValue: breakdown.assetsValue,
+        solatiumAmount: breakdown.solatium,
+        additionalMarketValue: breakdown.additionalMarketValue,
+        calculationBreakdown: breakdown,
+      };
+
+      // Also update the parcel's compensation amount
+      await Parcel.findByIdAndUpdate(parcelId, { compensationAmount: finalAssessed });
+    }
+
     let compensation = await Compensation.findOne({ parcelId });
 
     if (compensation) {
-      compensation.assessedAmount = assessedAmount !== undefined ? assessedAmount : compensation.assessedAmount;
-      compensation.approvedAmount = approvedAmount !== undefined ? approvedAmount : compensation.approvedAmount;
+      if (finalAssessed !== undefined) compensation.assessedAmount = finalAssessed;
+      if (finalApproved !== undefined) compensation.approvedAmount = finalApproved;
       if (resolvedProjectId) compensation.projectId = resolvedProjectId;
       if (paymentStatus) compensation.paymentStatus = paymentStatus;
+
+      // Assign statutory RFCTLARR fields if computed
+      if (Object.keys(rfctlarrData).length > 0) {
+        Object.assign(compensation, rfctlarrData);
+      }
+
       await compensation.save();
     } else {
       compensation = await Compensation.create({
         parcelId,
         projectId: resolvedProjectId,
-        assessedAmount: assessedAmount || 0,
-        approvedAmount: approvedAmount || 0,
+        assessedAmount: finalAssessed || 0,
+        approvedAmount: finalApproved || 0,
         paymentStatus: paymentStatus || 'PENDING',
+        ...rfctlarrData,
       });
     }
 
@@ -51,9 +158,9 @@ export const createOrUpdateCompensation = async (req: AuthRequest, res: Response
       if (projectId) {
         await syncProjectAcquiredLand(projectId);
       }
-    } else if (approvedAmount > 0) {
+    } else if ((finalApproved || 0) > 0) {
       await Parcel.findByIdAndUpdate(parcelId, { compensationStatus: 'APPROVED' });
-    } else if (assessedAmount > 0) {
+    } else if ((finalAssessed || 0) > 0) {
       await Parcel.findByIdAndUpdate(parcelId, { compensationStatus: 'ASSESSED' });
     }
 
