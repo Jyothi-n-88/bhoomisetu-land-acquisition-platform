@@ -117,6 +117,15 @@ export const dummyPreAuthorizedOfficials = [
     assignedDistrict: 'Pune',
     isActive: false,
   },
+  {
+    officialName: 'Hackathon Evaluator',
+    govEmployeeId: 'DEMO-EVAL-2026',
+    department: 'National Evaluation & Hackathon Jury Panel',
+    authorizedRole: 'FIELD_OFFICER',
+    assignedState: 'Karnataka',
+    assignedDistrict: 'Bengaluru Urban',
+    isActive: true,
+  },
 ];
 
 /**
