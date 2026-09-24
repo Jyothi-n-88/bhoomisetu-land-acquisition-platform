@@ -56,19 +56,19 @@ STRICT INSTRUCTIONS:
 /**
  * Invokes Gemini API with exponential backoff and jitter specifically for 503 / High Demand errors.
  * 
- * - Base wait: 2 seconds (2000 ms)
- * - Exponential backoff: doubles after each failure (2s, 4s, 8s, 16s, capped)
+ * - Base wait: 1 second (1000 ms)
+ * - Exponential backoff: doubles after failure (1s + jitter, capped)
  * - Jitter: adds random fraction of a second to mitigate thundering herd
- * - Max retries: 5 attempts
+ * - Max retries: 1 attempt (fail-fast to reach Tesseract fallback within Render timeout)
  */
 async function callModelWithBackoff(
   ai: GoogleGenAI,
   modelName: string,
   base64Data: string,
   mimeType: string,
-  maxRetries = 5
+  maxRetries = 1
 ): Promise<ExtractedOfficialData | null> {
-  const baseWaitMs = 2000;
+  const baseWaitMs = 1000;
   const maxWaitMs = 16000;
 
   for (let retry = 0; retry <= maxRetries; retry++) {
@@ -222,7 +222,7 @@ export async function extractOfficialIdFromImage(
   const base64Data = imageBuffer.toString('base64');
   const PRIMARY_MODEL = 'gemini-3.6-flash';
   const FALLBACK_MODEL = 'gemini-3.5-flash-lite';
-  const MAX_RETRIES = 5;
+  const MAX_RETRIES = 1;
 
   let primaryError: any = null;
 
