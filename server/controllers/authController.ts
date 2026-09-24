@@ -2,11 +2,15 @@ import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
-import { GoogleGenAI } from '@google/genai';
 import User from '../models/User';
 import OTP from '../models/OTP';
 import PreAuthorizedOfficial from '../models/PreAuthorizedOfficial';
 import { sendEmail } from '../utils/sendEmail';
+import {
+  extractOfficialIdFromImage,
+  is503Error,
+  OcrHighDemandError,
+} from '../utils/ocrService';
 import { AuthRequest } from '../middleware/authMiddleware';
 
 // Generate JWT
@@ -78,108 +82,37 @@ export const register = async (req: Request, res: Response, next?: NextFunction)
       let extractedData: { officialName?: string; govEmployeeId?: string } | null = null;
 
       try {
-        const ai = new GoogleGenAI({
-          apiKey,
-          httpOptions: {
-            headers: {
-              'User-Agent': 'bhoomisetu-official-auth',
-            },
-          },
-        });
-
         const mimeType = idProofFile.mimetype || 'image/jpeg';
-        const base64Data = idProofFile.buffer.toString('base64');
-
-        const promptText = `
-You are an expert Government Official Credential Verification AI for BhoomiSetu (Govt. of India).
-Examine the provided official Government Identity Card / Service Card image.
-Extract the Official's full legal name and their official Government Employee ID / Service Number (e.g. format like 'DL/REV/SA/2026/0123' or similar).
-
-STRICT INSTRUCTIONS:
-1. Return ONLY a valid JSON object with EXACTLY these two keys:
-{
-  "officialName": "Full Name as printed on the card",
-  "govEmployeeId": "Government Employee ID / Badge No / Service ID"
-}
-2. If any field cannot be found or the image is illegible, set that field value to null.
-3. Do not include markdown code block syntax (no \`\`\`json). Output pure raw JSON only.
-`;
-
-        // High-availability free-tier model candidates: fail fast without artificial jitter delays
-        const candidateModels = ['gemini-3.6-flash', 'gemini-3.5-flash-lite'];
-
-        let lastModelError: any = null;
-
-        for (const model of candidateModels) {
-          try {
-            const response = await ai.models.generateContent({
-              model,
-              contents: [
-                {
-                  role: 'user',
-                  parts: [
-                    {
-                      inlineData: {
-                        data: base64Data,
-                        mimeType,
-                      },
-                    },
-                    {
-                      text: promptText,
-                    },
-                  ],
-                },
-              ],
-              config: {
-                temperature: 0.1,
-                responseMimeType: 'application/json',
-              },
-            });
-
-            const textOutput = (response.text || '{}')
-              .replace(/```json/gi, '')
-              .replace(/```/g, '')
-              .trim();
-            extractedData = JSON.parse(textOutput);
-            if (extractedData?.govEmployeeId) break;
-          } catch (modelErr: any) {
-            lastModelError = modelErr;
-            const errMsg = modelErr.message || '';
-            console.warn(`Gemini OCR attempt with ${model} notice:`, errMsg);
-            // Immediately continue to next fallback model without retrying or delaying
-          }
-        }
-
-        // If both models fail (e.g. 404 not found, 503 unavailable, 429 quota), gracefully return 503 so frontend doesn't hang
-        if (!extractedData) {
-          const errMsg = lastModelError?.message || '';
-          console.error('All OCR candidate models exhausted or failed:', errMsg);
-          return res.status(503).json({
-            success: false,
-            message:
-              'The AI OCR verification service is currently experiencing high demand. Please try uploading your ID again in a moment, or use your Official Secret Key.',
-          });
-        }
+        extractedData = await extractOfficialIdFromImage(
+          idProofFile.buffer,
+          mimeType,
+          apiKey
+        );
       } catch (ocrError: any) {
         console.error('Gemini OCR verification execution failed:', ocrError);
         const errMsg = ocrError?.message || '';
-        // If the error was a model availability, 404, or 503 error, return 503 gracefully
+
+        // If high demand (503), capacity, or retries exhausted, return 503 with user-friendly message
         if (
+          ocrError instanceof OcrHighDemandError ||
+          is503Error(ocrError) ||
+          errMsg.includes('document scanner is currently busy') ||
           errMsg.includes('503') ||
-          errMsg.includes('404') ||
           errMsg.includes('UNAVAILABLE') ||
-          errMsg.includes('high demand') ||
-          errMsg.includes('NOT_FOUND')
+          errMsg.includes('high demand')
         ) {
           return res.status(503).json({
             success: false,
             message:
-              'The AI OCR verification service is currently experiencing high demand. Please try uploading your ID again in a moment, or use your Official Secret Key.',
+              'The document scanner is currently busy due to high traffic. Please try submitting again in a few minutes.',
           });
         }
+
         return res.status(403).json({
           success: false,
-          message: 'AI Optical Verification failed: Unable to process or parse the official ID card image.',
+          message:
+            ocrError?.message ||
+            'AI Optical Verification failed: Unable to process or parse the official ID card image.',
         });
       }
 
